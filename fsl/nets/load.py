@@ -18,8 +18,8 @@ import nibabel as nib
 
 
 def load(infiles,
-         meldir,
          tr,
+         meldir=None,
          varnorm=0,
          nruns=1,
          demean=True):
