@@ -9,20 +9,24 @@
 
 
 import                        glob
+import                        os
 import os.path         as     op
 from   pathlib         import Path
 from   collections.abc import Sequence
 
-import numpy   as np
-import nibabel as nib
+import numpy          as     np
+from   fsl.utils.run  import runfsl
+from   fsl.data.image import Image
+
 
 
 def load(infiles,
          tr,
-         meldir=None,
          varnorm=0,
          nruns=1,
-         demean=True):
+         demean=True,
+         melodicdir=None,
+         thumbnaildir=None):
 
     if isinstance(infiles, (str, Path)):
         infiles = sorted(glob.glob(op.join(infiles, 'dr_stage1_*.txt')))
@@ -59,22 +63,30 @@ def load(infiles,
         timeseries[i] = ts
 
     timeseries = np.vstack(timeseries)
+    thumbs     = load_thumbnails(thumbnaildir, melodicdir)
 
-    return TimeSeries(timeseries, tr, meldir, nsubjects,  nruns)
+    return TimeSeries(timeseries, tr, nsubjects, nruns, thumbs)
 
 
 class TimeSeries:
 
-    def __init__(self, ts, tr, meldir, nsubjects, nruns):
+    def __init__(self, ts, tr, nsubjects, nruns, thumbnails):
         self.__ts            = ts
         self.__origts        = np.copy(ts)
         self.__tr            = tr
-        self.__meldir        = meldir
         self.__nsubjects     = nsubjects
         self.__nruns         = nruns
         self.__orignnodes    = ts.shape[1]
         self.__goodmask      = np.ones( ts.shape[1], dtype=bool)
         self.__unknownmask   = np.zeros(ts.shape[1], dtype=bool)
+        self.__thumbnails    = thumbnails
+
+    @property
+    def nodes(self):
+        return np.where(self.__goodmask)[0]
+
+    def node_index(self, node):
+        return np.where(self.nodes == node)[0][0]
 
     @property
     def nnodes(self):
@@ -137,7 +149,7 @@ class TimeSeries:
 
     @goodnodes.setter
     def goodnodes(self, nodes):
-        nodes = np.asanyarray(nodes) - 1
+        nodes = np.asanyarray(nodes)
 
         if ((nodes < 0) | (nodes >= self.nnodes)).any():
             raise ValueError(f'Invalid node indices (< 0 or > {self.nnodes})')
@@ -148,7 +160,7 @@ class TimeSeries:
 
     @unknownnodes.setter
     def unknownnodes(self, nodes):
-        nodes = np.asanyarray(nodes) - 1
+        nodes = np.asanyarray(nodes)
 
         if ((nodes < 0) | (nodes >= self.nnodes)).any():
             raise ValueError(f'Invalid node indices (< 0 or > {self.nnodes})')
@@ -156,3 +168,41 @@ class TimeSeries:
         mask               = np.zeros(self.ts.shape[1], dtype=bool)
         mask[nodes]        = True
         self.__unknownmask = mask
+
+
+    def thumbnail(self, nodeidx):
+        if self.__thumbnails is None:
+            return None
+        return self.__thumbnails[nodeidx]
+
+
+
+def load_thumbnails(thumbnaildir, melodicdir):
+
+    if thumbnaildir is None and melodicdir is None:
+        return None
+    if thumbnaildir is None:
+        thumbnaildir = generate_thumbnails(melodicdir)
+
+    return sorted(glob.glob(op.join(thumbnaildir, '*.png')))
+
+
+def generate_thumbnails(melodicdir):
+
+    fsldir       = os.environ['FSLDIR']
+    thumbnaildir = op.join(melodicdir, '.thumbnails')
+    melic        = op.join(melodicdir, 'melodic_IC')
+
+    if not op.exists(thumbnaildir):
+
+        os.mkdir(thumbnaildir)
+
+        # assuming MNI152
+        if Image(melic).shape[:3] == (91, 109, 91): std = '2mm'
+        else:                                       std = '1mm'
+
+        std = op.join(fsldir, 'data', 'standard', f'MNI152_T1_{std}')
+
+        runfsl(f'slices_summary {melic} 4 {std} {thumbnaildir} -1')
+
+    return thumbnaildir

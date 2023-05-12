@@ -25,3 +25,4 @@ from fsl.nets.clean     import clean
 from fsl.nets.glm       import glm
 from fsl.nets.netmats   import netmats
 from fsl.nets.groupmean import groupmean
+from fsl.nets.spectra   import plot_spectra
