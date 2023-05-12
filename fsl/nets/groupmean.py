@@ -4,7 +4,7 @@
 #                netmats across runs/subjects
 #
 # Author: Steve Smith, 2012-2014
-# Author: Paul McCarthy, 2023
+#         Paul McCarthy, 2023
 #
 
 

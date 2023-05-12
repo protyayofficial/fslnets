@@ -4,7 +4,7 @@
 #            (for further cleanup)
 #
 # Author: Steve Smith and Ludo Griffanti, 2013-2014
-# Author: Paul McCarthy, 2023
+#         Paul McCarthy, 2023
 #
 
 import numpy as np

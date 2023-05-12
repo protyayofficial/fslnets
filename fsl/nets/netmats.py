@@ -2,7 +2,7 @@
 #
 # netmats.py - create network matrices ("netmats") for each separate run/subject in ts
 #
-# Author: Steve Smith, Ludo Griffanti, Roser Sala and Eugene Duff  2013-2014
+# Author: Steve Smith, Ludo Griffanti, Roser Sala and Eugene Duff, 2013-2014
 #         Paul McCarthy, 2023
 #
 

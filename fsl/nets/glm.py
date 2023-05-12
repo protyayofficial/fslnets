@@ -2,8 +2,8 @@
 #
 # glm.py - do cross-subject GLM on a set of netmats
 #
-# Author: Steve Smith and Ludo Griffanti - 2013-2014
-# Author: Paul McCarthy, 2023
+# Author: Steve Smith and Ludo Griffanti, 2013-2014
+#         Paul McCarthy, 2023
 #
 
 import os.path           as     op
