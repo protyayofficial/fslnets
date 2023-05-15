@@ -68,6 +68,7 @@ def plot_groupmean(ts, zvals, mean, netmats, title):
     zstatax.set_title('Overall connectivity (Z-stat from one-group t-test)')
     zstatax.set_xlabel('Node')
     zstatax.set_ylabel('Node')
+    zstatax.plot([0, 1], [1, 0], transform=zstatax.transAxes, c='#000000')
 
     mean = np.tile(mean.flatten(), (netmats.shape[0], 1))
 

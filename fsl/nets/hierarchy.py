@@ -22,7 +22,7 @@ def hierarchy(netmat):
 
     # normalise w.r.t. outliers again, clamp to -1, 1
     # normalise to -0.5, 0.5 and invert
-    triu                        = np.triu(np.ones(netmat.shape), 1) > 0
+    triu                        = np.triu_indices(netmat.shape[0], 1)
     norm                        = np.percentile(np.abs(clusternet), 99)
     clusternet                  = clusternet / norm
     clusternet[clusternet < -1] = -1
@@ -33,13 +33,13 @@ def hierarchy(netmat):
     return sch.linkage(clusternet, method='ward', optimal_ordering=True)
 
 
-def plot_hierarchy(ts, netmatl, netmath=None):
+def plot_hierarchy(ts, netmatl, netmath=None, lowlabel=None, highlabel=None):
 
     if netmath is None:
         netmath = netmatl
 
     # normalise w.r.t. outliers
-    triu    = np.triu(np.ones(netmatl.shape), 1) > 0
+    triu    = np.triu_indices(netmatl.shape[0], 1)
     norm    = np.percentile(np.abs(netmatl[triu]), 99)
     netmatl = netmatl / norm
     netmath = netmath / norm
@@ -74,8 +74,8 @@ def plot_hierarchy(ts, netmatl, netmath=None):
         thumbax.set_xlabel(str(node), fontsize=8)
         thumbax.set_anchor('N')
 
-    tril         = np.tril(np.ones(netmatl.shape), 1) > 0
-    triu         = np.triu(np.ones(netmatl.shape), 1) > 0
+    tril         = np.tril_indices(netmatl.shape[0], -1)
+    triu         = np.triu_indices(netmatl.shape[0],  1)
     matrix       = np.zeros(netmatl.shape)
     matrix[tril] = netmatl[tril]
     matrix[triu] = netmath[triu]
@@ -87,14 +87,18 @@ def plot_hierarchy(ts, netmatl, netmath=None):
     matrix = matrix[nodes, :][:, nodes]
     matrix = np.flipud(matrix.T)
 
-
-
     matax.pcolormesh(matrix, cmap='jet', vmin=-1, vmax=1)
+    matax.plot([0, 1], [1, 0], transform=matax.transAxes, c='#000000')
 
-    matax.axis('off')
     matax.set_xticks([])
     matax.set_yticks([])
 
+    if lowlabel is not None:
+        matax.set_xlabel(lowlabel)
+    if highlabel is not None:
+        matax.set_ylabel(highlabel)
+        matax.yaxis.set_label_position('right')
+
     fig.suptitle('Netmat hierarchical clustering summary')
-    fig.subplots_adjust(0.01, 0.01, 0.99, 0.95, 0, 0)
+    fig.subplots_adjust(0.02, 0.03, 0.98, 0.95, 0, 0)
     fig.show()

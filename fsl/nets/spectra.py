@@ -50,11 +50,12 @@ def plot_spectra(ts, ncols=4, nodes=None):
     # columns, and spans 25% of the height
     meanrows = int(np.ceil(0.50 * nrows))
 
-    # And each node plot actually spans four
-    # columns (1=thumbnail, 3=spectrum), so
-    # we actually have ncols*4 columns.
+    # And each node plot actually spans six
+    # columns (1=thumbnail, 5=spectrum), so
+    # we actually have ncols*6 columns.
+    gridsz      = 6
     fig         = plt.figure()
-    grid        = GridSpec(meanrows + nrows, ncols * 4, figure=fig)
+    grid        = GridSpec(meanrows + nrows, ncols * gridsz, figure=fig)
     meanax      = fig.add_subplot(grid[nrows:nrows + meanrows, :])
     spectra     = [node_spectrum(ts, n) for n in nodes]
     meanspectra = np.median(spectra, axis=0)
@@ -64,8 +65,8 @@ def plot_spectra(ts, ncols=4, nodes=None):
         spectrum = spectra[i]
         row      = i %  nrows
         col      = i // nrows
-        cstart   = col    * 4
-        cend     = cstart + 4
+        cstart   = col    * gridsz
+        cend     = cstart + gridsz
 
         if havethumbs:
             thumbax = fig.add_subplot(grid[row, cstart])
@@ -81,6 +82,7 @@ def plot_spectra(ts, ncols=4, nodes=None):
         if havethumbs:
             thumbnail = mplimg.imread(ts.thumbnail(node))
             thumbax.imshow(thumbnail, aspect='equal')
+            thumbax.set_anchor('E')
 
         for ax in [thumbax, plotax]:
             if ax is not None:
@@ -90,7 +92,7 @@ def plot_spectra(ts, ncols=4, nodes=None):
 
         if thumbax is not None: titleax = thumbax
         else:                   titleax = plotax
-        titleax.set_title(str(node), x=0, y=0.5,
+        titleax.set_title(str(node), x=0, y=0.5, fontsize=8,
                           verticalalignment='top',
                           horizontalalignment='right')
 
