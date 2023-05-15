@@ -80,12 +80,11 @@ def plot_spectra(ts, ncols=4, nodes=None):
 
         if havethumbs:
             thumbnail = mplimg.imread(ts.thumbnail(node))
-            thumbax.imshow(thumbnail)
+            thumbax.imshow(thumbnail, aspect='equal')
 
         for ax in [thumbax, plotax]:
             if ax is not None:
                 ax.axis('off')
-                ax.autoscale(enable=True, tight=True)
                 ax.set_xticks([])
                 ax.set_yticks([])
 

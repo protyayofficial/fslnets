@@ -20,10 +20,15 @@ nets_lda
 nets_boxplots
 """
 
-from fsl.nets.load      import  load
+
 from fsl.nets.clean     import  clean
 from fsl.nets.glm       import  glm
-from fsl.nets.netmats   import  netmats
 from fsl.nets.groupmean import (groupmean,
                                 plot_groupmean)
+from fsl.nets.hierarchy import (hierarchy,
+                                plot_hierarchy)
+from fsl.nets.glm       import  glm
+from fsl.nets.load      import  load
+from fsl.nets.netmats   import  netmats
+
 from fsl.nets.spectra   import  plot_spectra
