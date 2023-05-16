@@ -100,9 +100,12 @@ def plot_spectra(ts, ncols=4, nodes=None):
     meanax.autoscale(enable=True, tight=True)
     meanax.spines['right'].set_visible(False)
     meanax.spines['top']  .set_visible(False)
-    meanax.set_xlabel('Median across all nodes')
+    meanax.set_xticks([])
+    meanax.set_yticks([])
+    meanax.set_ylabel('Amplitude')
+    meanax.set_xlabel('Frequency')
+    meanax.set_title('Median across all nodes', y=0)
 
     fig.subplots_adjust(0.05, 0.05, 0.95, 0.95, 0, 0)
     fig.suptitle('Node time series power spectra')
-    fig.show()
     return fig

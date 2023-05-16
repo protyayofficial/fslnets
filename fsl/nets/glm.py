@@ -58,7 +58,6 @@ def glm(ts, netmats, design, contrasts, nperms=5000, plot=True, title=None):
                 printTitle(f'Contrast {con+1} [{constr}] - no results')
                 continue
 
-
             pvals = [cpcorr[i, j]   for i, j in sig]
             tvals = [tstat[ i, j]   for i, j in sig]
             nis   = [ts.nodes[s[0]] for s    in sig]
@@ -73,7 +72,7 @@ def glm(ts, netmats, design, contrasts, nperms=5000, plot=True, title=None):
             printColumns(titles, columns)
 
     if plot:
-        plot_pvalues(ts, pcorr)
+        plot_pvalues(ts, pcorr, title)
 
     return pcorr, puncorr
 
@@ -113,9 +112,21 @@ def plot_pvalues(ts, pvals, title=None):
 
         meshes.append(m)
 
-        ax.axis('off')
+        textbox = {'facecolor' : 'white',
+                   'edgecolor' : 'red',
+                   'alpha'     : 0.75,
+                   'pad'       : 2}
+        ax.set_xticks([])
+        ax.set_yticks([])
+        ax.text(1, 1, '(1-P) >= 0.95', transform=ax.transAxes, bbox=textbox, ha='right', va='top')
+        ax.text(0, 0, '1-P',           transform=ax.transAxes, bbox=textbox, ha='left',  va='bottom')
         ax.set_title(f'Contrast {contrast+1}')
-        ax.plot([0, 1], [1, 0], transform=ax.transAxes, c='#7777ff')
+        ax.plot([0, 1], [1, 0], transform=ax.transAxes,
+                c='#7777ff', linestyle='--')
 
+    if title is not None:
+        fig.suptitle(title)
     fig.colorbar(meshes[-1], ax=axes, label='1-P', location='right')
     fig.set_layout_engine('constrained')
+
+    return fig

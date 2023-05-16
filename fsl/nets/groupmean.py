@@ -68,7 +68,8 @@ def plot_groupmean(ts, zvals, mean, netmats, title):
     zstatax.set_title('Overall connectivity (Z-stat from one-group t-test)')
     zstatax.set_xlabel('Node')
     zstatax.set_ylabel('Node')
-    zstatax.plot([0, 1], [1, 0], transform=zstatax.transAxes, c='#000000')
+    zstatax.plot([0, 1], [1, 0], transform=zstatax.transAxes,
+                 c='#000000', linestyle='--')
 
     mean = np.tile(mean.flatten(), (netmats.shape[0], 1))
 
@@ -79,6 +80,9 @@ def plot_groupmean(ts, zvals, mean, netmats, title):
     smin, smax = np.percentile(netmats, (1, 99))
     scatax.set_xlim((smin, smax))
     scatax.set_ylim((smin, smax))
+    scatax.plot([0, 1], [0, 1], transform=scatax.transAxes,
+                c='#000000', linestyle='--')
+
     scatax.yaxis.tick_right()
     scatax.yaxis.set_label_position('right')
 
@@ -89,4 +93,4 @@ def plot_groupmean(ts, zvals, mean, netmats, title):
     if title is not None:
         fig.suptitle(title)
 
-    fig.show()
+    return fig

@@ -101,4 +101,5 @@ def plot_hierarchy(ts, netmatl, netmath=None, lowlabel=None, highlabel=None):
 
     fig.suptitle('Netmat hierarchical clustering summary')
     fig.subplots_adjust(0.02, 0.03, 0.98, 0.95, 0, 0)
-    fig.show()
+
+    return fig
