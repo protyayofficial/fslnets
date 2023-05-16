@@ -14,33 +14,63 @@ from   fsl.data.image    import Image
 from   fsl.utils.tempdir import tempdir
 from   fsl.utils.run     import runfsl
 from   fsl.wrappers      import randomise
+from   fsl.nets.util     import printTitle, printColumns
 
 
 def glm(ts, netmats, design, contrasts, nperms=5000, plot=True, title=None):
     """
     """
 
+    nnodes     = ts.nnodes
     nsubjs     = netmats.shape[0]
     nedges     = netmats.shape[1]
-    ncontrasts = vest.loadVestFile(contrasts).shape[0]
+    confile    = op.abspath(contrasts)
     design     = op.abspath(design)
-    contrasts  = op.abspath(contrasts)
+    contrasts  = vest.loadVestFile(confile)
+    ncontrasts = contrasts.shape[0]
 
     with tempdir():
 
+        # TODO NIFTI2 required if nedges >= 32768
         netmats = netmats.T.reshape((nedges, 1, 1, nsubjs))
 
         Image(netmats).save('netmats')
 
-        randomise('netmats', 'output', d=design, t=contrasts, n=nperms,
+        randomise('netmats', 'output', d=design, t=confile, n=nperms,
                   x=True, uncorrp=True, log={'tee' : False})
 
         puncorr = np.zeros((ncontrasts, nedges))
         pcorr   = np.zeros((ncontrasts, nedges))
 
         for con in range(ncontrasts):
-            puncorr[con] = Image(f'output_vox_p_tstat{con+1}')    .data.flatten()
-            pcorr[  con] = Image(f'output_vox_corrp_tstat{con+1}').data.flatten()
+            constr       = ' '.join([f'{c:g}' for c in contrasts[con]])
+            tstat        = Image(f'output_tstat{con+1}')          .data.flatten()
+            cpuncorr     = Image(f'output_vox_p_tstat{con+1}')    .data.flatten()
+            cpcorr       = Image(f'output_vox_corrp_tstat{con+1}').data.flatten()
+            puncorr[con] = cpuncorr
+            pcorr[  con] = cpcorr
+
+            tstat  = tstat .reshape((nnodes, nnodes))
+            cpcorr = cpcorr.reshape((nnodes, nnodes))
+            sig    = list(zip(*np.where(np.triu(cpcorr, 1) >= 0.95)))
+
+            if len(sig) == 0:
+                printTitle(f'Contrast {con+1} [{constr}] - no results')
+                continue
+
+
+            pvals = [cpcorr[i, j]   for i, j in sig]
+            tvals = [tstat[ i, j]   for i, j in sig]
+            nis   = [ts.nodes[s[0]] for s    in sig]
+            njs   = [ts.nodes[s[1]] for s    in sig]
+            rows  = reversed(sorted(zip(pvals, nis, njs, tvals)))
+
+            pvals, nis, njs, tvals = zip(*rows)
+
+            titles  = ['Node i', 'Node j', 'T statistic', 'P value']
+            columns = [nis, njs, tvals, pvals]
+            printTitle(f'Contrast {con+1} [{constr}]')
+            printColumns(titles, columns)
 
     if plot:
         plot_pvalues(ts, pcorr)
