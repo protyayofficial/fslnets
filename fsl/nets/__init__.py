@@ -22,6 +22,7 @@ nets_boxplots
 
 
 from fsl.nets.clean     import  clean
+from fsl.nets.edgepics  import  edgepics
 from fsl.nets.glm       import (glm,
                                 plot_pvalues)
 from fsl.nets.groupmean import (groupmean,
