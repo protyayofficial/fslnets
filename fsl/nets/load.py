@@ -85,6 +85,10 @@ class TimeSeries:
     def nodes(self):
         return np.where(self.__goodmask)[0]
 
+    @property
+    def orignnodes(self):
+        return self.__orignnodes
+
     def node_index(self, node):
         return np.where(self.nodes == node)[0][0]
 
@@ -151,7 +155,7 @@ class TimeSeries:
     def goodnodes(self, nodes):
         nodes = np.asanyarray(nodes)
 
-        if ((nodes < 0) | (nodes >= self.nnodes)).any():
+        if ((nodes < 0) | (nodes >= self.orignnodes)).any():
             raise ValueError(f'Invalid node indices (< 0 or > {self.nnodes})')
 
         mask            = np.zeros(self.ts.shape[1], dtype=bool)
@@ -162,7 +166,7 @@ class TimeSeries:
     def unknownnodes(self, nodes):
         nodes = np.asanyarray(nodes)
 
-        if ((nodes < 0) | (nodes >= self.nnodes)).any():
+        if ((nodes < 0) | (nodes >= self.orignnodes)).any():
             raise ValueError(f'Invalid node indices (< 0 or > {self.nnodes})')
 
         mask               = np.zeros(self.ts.shape[1], dtype=bool)

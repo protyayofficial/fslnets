@@ -2,25 +2,17 @@
 #
 # __init__.py - The FSLNets package.
 #
-# Author: Paul McCarthy <pauldmccarthy@gmail.com>
-#
+"""FSLNets is a set of simple scripts for carrying out basic network modelling
+from (typically FMRI) timeseries data.
 
-"""
-*nets_load
-*nets_tsclean
-nets_nodepics
-*nets_spectra
-*nets_netmats
-*nets_groupmean
-nets_hierarchy
-nets_netweb
-*nets_glm
-nets_edgepics
-nets_lda
-nets_boxplots
+https://fsl.fmrib.ox.ac.uk/fsl/fslwiki/FSLNets
 """
 
 
+__version__ = '0.7.0'
+
+
+from fsl.nets.boxplots  import  boxplots
 from fsl.nets.clean     import  clean
 from fsl.nets.edgepics  import  edgepics
 from fsl.nets.glm       import (glm,

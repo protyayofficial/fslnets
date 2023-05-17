@@ -56,7 +56,7 @@ def plot_groupmean(ts, zvals, mean, netmats, title):
     zmax  = np.nanmax(np.abs(zvals))
     zvals = np.flipud(zvals)
 
-    ticklbls = [0, ts.nodes[-1]]
+    ticklbls = [ts.nodes[0], ts.nodes[-1]]
     ticks    = [ts.node_index(t) for t in ticklbls]
 
     m = zstatax.pcolormesh(zvals, cmap='jet', vmin=-zmax, vmax=zmax)
