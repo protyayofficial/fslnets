@@ -12,9 +12,11 @@ https://fsl.fmrib.ox.ac.uk/fsl/fslwiki/FSLNets
 __version__ = '0.7.0'
 
 
-from fsl.nets.boxplots  import  boxplots
+from fsl.nets.boxplots  import (boxplots,
+                                boxplot,
+                                edgepic)
+from fsl.nets.classify  import  classify
 from fsl.nets.clean     import  clean
-from fsl.nets.edgepics  import  edgepics
 from fsl.nets.glm       import (glm,
                                 plot_pvalues)
 from fsl.nets.groupmean import (groupmean,
