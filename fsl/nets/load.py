@@ -245,6 +245,11 @@ class TimeSeries:
         """Total number of data sets (subjects * runs) contained in ts. """
         return sum([t.shape[0] for t in self.ts])
 
+    def datasets(self, subj):
+        """Returns indices for all datasets/runs for the given subject. """
+        offset = sum([self.nruns(s) for s in range(subj)])
+        return range(offset, offset + self.nruns(subj))
+
     def nruns(self, subjidx):
         """Number of runs in ts for the given subject. """
         return self.__ts[subjidx].shape[0]

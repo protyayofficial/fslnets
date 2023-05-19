@@ -17,25 +17,51 @@ import seaborn           as sns
 def groupmean(ts, netmats, plot=True, title=None):
     """Perform a one-sample T-test on all subject netmats, and return
     Z-statistic and mean connectivity matrices.
-    """
-    nsubjs = netmats.shape[0]
-    nedges = netmats.shape[1]
-    dof    = nsubjs - 1
-    mean   = netmats.mean(axis=0)
-    std    = netmats.std( axis=0)
-    tvals  = np.sqrt(nsubjs) * mean / std
-    tpos   = tvals > 0
-    tneg   = tvals < 0
 
+    ts:      TimeSeries object
+
+    netmats: (dataset, edges) array containing per-subject netmats for
+             all runs
+
+    plot:    If True, the group mean netmat is displayed alongside a KDE
+             plot depicting the relationship between individual subject
+             netmats and the mean.
+
+    title:   Plot title
+
+    Returns two (nodes, nodes) arrays, containing Z values and mean
+    edge strengths.
+    """
+
+    nsubjs  = ts.nsubjects
+    nedges  = netmats.shape[1]
+    avgmats = np.zeros((nsubjs, nedges))
+
+    # Average netmats within subject across runs
+    for subj in range(ts.nsubjects):
+        idxs          = ts.datasets(subj)
+        avgmats[subj] = netmats[idxs].mean(axis=0)
+
+    # one-group t-test
+    dof    = nsubjs - 1
+    mean   = avgmats.mean(axis=0)
+    std    = avgmats.std( axis=0)
+    tvals  = np.sqrt(nsubjs) * mean / std
+
+    # transform to z-values (ignoring diagonal)
     zvals       = np.zeros(tvals.shape)
+    tpos        = tvals > 0
+    tneg        = tvals < 0
     zvals[tpos] = -stats.norm.ppf(stats.t.cdf(-tvals[tpos], dof))
     zvals[tneg] =  stats.norm.ppf(stats.t.cdf( tvals[tneg], dof))
+
+    # very large t values may be transformed
+    # to inf, so just use the t-value instead
     zinf        = ~np.isfinite(zvals)
     zvals[zinf] = tvals[zinf]
 
-    if np.sqrt(nedges) == ts.nnodes:
-        zvals = zvals.reshape((ts.nnodes, ts.nnodes))
-        mean  = mean .reshape((ts.nnodes, ts.nnodes))
+    zvals = zvals.reshape((ts.nnodes, ts.nnodes))
+    mean  = mean .reshape((ts.nnodes, ts.nnodes))
 
     if plot:
         plot_groupmean(ts, zvals, mean, netmats, title)
@@ -43,9 +69,20 @@ def groupmean(ts, netmats, plot=True, title=None):
     return zvals, mean
 
 
-def plot_groupmean(ts, zvals, mean, netmats, title):
+def plot_groupmean(ts, zvals, mean, netmats, title=None):
     """Plot mean connectivity Z value matrix, and a scatter plot of subject
     connectivity vs mean connectivity.
+
+    ts:      TimeSeries object
+
+    zvals:   (nodes, nodes) array containing the mean netmat across subjects
+             (as Z values)
+
+    mean:    (nodes, nodes) array containing the mean netmat across subjects
+
+    netmats: (subjects, edges) array containing per-subject netmats
+
+    title:   Plot title
     """
 
     fig     = plt.figure()

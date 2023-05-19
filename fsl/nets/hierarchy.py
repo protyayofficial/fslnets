@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+#
 # hierarchy.py - create hierarchical clustering figure
 #
 # Author: Steve Smith, 2012-2014
@@ -14,7 +15,9 @@ from   matplotlib.gridspec import GridSpec
 
 
 def hierarchy(netmat):
-    """Perform hierarchical clustering on the given netmat. """
+    """Perform hierarchical clustering on the given netmat.
+    Return a linkage array containing clustering results.
+    """
 
     # zero negative entries - seems to give nicer hierarchies
     clusternet = np.copy(netmat)
@@ -34,6 +37,33 @@ def hierarchy(netmat):
 
 
 def plot_hierarchy(ts, netmatl, netmath=None, lowlabel=None, highlabel=None):
+    """Perform hierarchical clustering and display a dendrogram and mean
+    connectivity matrix re-ordered according to the clustering results.
+
+    ts:        TimeSeries object
+
+    netmatl:   (nodes, nodes) array used to drive the clustering. This is
+               typically the z-stat from the one-group-t-test across all
+               subjects' netmats
+
+    netmath:   is the net matrix shown above the diagonal, for example
+               partial correlation
+
+    lowlabel:  Label for netmatl (e.g. "Full correlation")
+
+    highlabel: Label for netmath (e.g. "Partial correlation")
+
+    Returns:
+
+      - List of re-ordered node indices - *not* the original node labels if
+        nets.clean was performed. You can convert a node index into the
+        corresponding node label via the TimeSeries.nodes list.
+
+      - Linkage array describing the clustering (see
+        scipy.cluster.hierarchy.linkage)
+
+      - Matplotlib Figure object.
+    """
 
     if netmath is None:
         netmath = netmatl
@@ -54,7 +84,7 @@ def plot_hierarchy(ts, netmatl, netmath=None, lowlabel=None, highlabel=None):
     dendax = fig.add_subplot(grid[ :2, :])
     matax  = fig.add_subplot(grid[3:,  :])
     dend   = sch.dendrogram(link, ax=dendax, no_labels=True, show_leaf_counts=False)
-    nodes  = dend['leaves']
+    nodes  = list(dend['leaves'])
 
     dendax.axis('off')
     dendax.set_xticks([])
@@ -102,4 +132,4 @@ def plot_hierarchy(ts, netmatl, netmath=None, lowlabel=None, highlabel=None):
     fig.suptitle('Netmat hierarchical clustering summary')
     fig.subplots_adjust(0.02, 0.03, 0.98, 0.95, 0, 0)
 
-    return fig
+    return nodes, link, fig

@@ -51,7 +51,7 @@ def boxplots(ts, netmats, znetmat, pnetmat, groups=None, nedges=6, edges=None):
     # edge strength, and boxplots.
     tlen  = 3
     elen  = 1
-    plen  = 13
+    plen  = 25
     nrows = len(edges)
 
     fig      = plt.figure()

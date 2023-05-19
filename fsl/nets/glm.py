@@ -18,16 +18,51 @@ from   fsl.nets.util     import printTitle, printColumns
 
 
 def glm(ts, netmats, design, contrasts, nperms=5000, plot=True, title=None):
-    """
+    """Perform a cross-subject GLM on a set of netmats, giving uncorrected and
+    corrected (1-p) values.
+
+    Randomise (permutation testing) is used to get corrected 1-p-values (i.e.,
+    correcting for multiple comparisons across the NxN netmat elements).
+
+    ts:        TimeSeries object
+
+    netmats:   (subjects, edges) array containing per-subject netmats.
+
+    design:    Path to a FSL design matrix file denoting subject groups. The
+               rows must be in the same order as the subject order in netmats.
+
+    contrasts: Path to a FSL contrast file specifying the contrasts to test.
+
+    nperms:    Number of non-parametric permutations to apply
+
+    plot:      Display a (nodes, nodes) matrix of P-values (one per contrast)
+               highlighting edges that were found to have significantly
+               different strength.
+
+               1-corrected-p values are shown below the diagonal. The same
+               is shown above the diagonal, but thresholded at 0.95,i.e.
+               corrected-p < 0.05
+
+    title:     Plot title
+
+    Returns two (ncontrasts, nedges) arrays, containing the corrected and
+    uncorrected p-values.
     """
 
     nnodes     = ts.nnodes
-    nsubjs     = netmats.shape[0]
+    nsubjs     = ts.nsubjects
     nedges     = netmats.shape[1]
     confile    = op.abspath(contrasts)
     design     = op.abspath(design)
     contrasts  = vest.loadVestFile(confile)
     ncontrasts = contrasts.shape[0]
+
+    # Average netmats within subject across runs
+    avgmats = np.zeros((nsubjs, nedges))
+    for subj in range(ts.nsubjects):
+        idxs          = ts.datasets(subj)
+        avgmats[subj] = netmats[idxs].mean(axis=0)
+    netmats = avgmats
 
     with tempdir():
 
@@ -78,7 +113,11 @@ def glm(ts, netmats, design, contrasts, nperms=5000, plot=True, title=None):
 
 
 def plot_pvalues(ts, pvals, title=None):
-    """
+    """Plot a (nnodes, nnodes) matrix assumed to contain P values.
+
+    ts:    TimeSeries object
+    pvals: (nodes, nodes) array containing P values.
+    title: Plot title
     """
     ncontrasts = pvals.shape[0]
     fig        = plt.figure()

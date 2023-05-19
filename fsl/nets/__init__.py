@@ -23,7 +23,7 @@ from fsl.nets.groupmean import (groupmean,
                                 plot_groupmean)
 from fsl.nets.hierarchy import (hierarchy,
                                 plot_hierarchy)
-from fsl.nets.glm       import  glm
-from fsl.nets.load      import  load
+from fsl.nets.load      import (load,
+                                load_file)
 from fsl.nets.netmats   import  netmats
 from fsl.nets.spectra   import  plot_spectra
