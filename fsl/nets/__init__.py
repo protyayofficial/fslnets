@@ -24,3 +24,4 @@ from fsl.nets.load      import (load,
                                 load_file)
 from fsl.nets.netmats   import  netmats
 from fsl.nets.spectra   import  plot_spectra
+from fsl.nets.web       import  web

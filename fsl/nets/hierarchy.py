@@ -7,11 +7,11 @@
 #
 
 
-import numpy                   as np
-import scipy.cluster.hierarchy as sch
-import matplotlib.pyplot   as     plt
-import matplotlib.image    as     mplimg
-from   matplotlib.gridspec import GridSpec
+import numpy                   as     np
+import scipy.cluster.hierarchy as     sch
+import matplotlib.pyplot       as     plt
+import matplotlib.image        as     mplimg
+from   matplotlib.gridspec     import GridSpec
 
 
 def hierarchy(netmat):

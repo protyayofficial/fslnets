@@ -145,6 +145,11 @@ def load_thumbnails(thumbnaildir, melodicdir):
                   file.
     """
 
+    if thumbnaildir is not None:
+        thumbnaildir = op.abspath(thumbnaildir)
+    if melodicdir is not None:
+        melodicdir = op.abspath(melodicdir)
+
     if thumbnaildir is None and melodicdir is None:
         return None
     if thumbnaildir is None:

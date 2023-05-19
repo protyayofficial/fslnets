@@ -1,0 +1,3 @@
+[submodule "fsl/nets/netjs"]
+	path = fsl/nets/netjs
+	url = https://github.com/pauldmccarthy/netjs.git
