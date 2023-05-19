@@ -42,6 +42,7 @@ Example usage:
 
 
 ```python
+%matplotlib tk
 import fsl.nets as nets
 
 # Load time series from a dual regression output directory
@@ -51,15 +52,15 @@ ts = nets.load('./groupICA100.dr/', 0.72, thumbnaildir='./groupICA100.sum/')
 nets.plot_spectra(ts)
 
 # Regress out the time courses of bad nodes/components
-ts.goodnodes = [ 0,  1,  2,  4,  5,  6,  7,  8, 10, 11,
-                12, 16, 17, 18, 19, 20, 21, 22, 24, 25,
-                26, 27, 28, 29, 30, 31, 32, 33, 34, 35,
-                36, 37, 39, 41, 42, 46, 47, 48, 49, 51,
-                52, 54, 55, 56, 57, 58, 60, 61, 63, 64,
-                65, 69, 70, 71, 72, 73, 76, 79, 80, 85,
-                86, 92, 96]
+goodnodes = [0,  1,  2,  4,  5,  6,  7,  8, 10, 11,
+             12, 16, 17, 18, 19, 20, 21, 22, 24, 25,
+             26, 27, 28, 29, 30, 31, 32, 33, 34, 35,
+             36, 37, 39, 41, 42, 46, 47, 48, 49, 51,
+             52, 54, 55, 56, 57, 58, 60, 61, 63, 64,
+             65, 69, 70, 71, 72, 73, 76, 79, 80, 85,
+             86, 92, 96]
 
-nets.clean(ts, True)
+nets.clean(ts, goodnodes, True)
 
 # Calculate connectivity estimates
 Fnetmats = nets.netmats(ts, 'corr')
@@ -75,9 +76,9 @@ nets.plot_hierarchy(ts, Znet_F, Znet_P, 'Full correlations', 'Partial correlatio
 # Perform a GLM regression using randomise
 p_corr,p_uncorr = nets.glm(ts, Pnetmats, 'design/unpaired_ttest.mat', 'design/unpaired_ttest.con');
 
-# View the most significant edges
-nets.edgepics(ts, p_corr[2], Znet_P)
+# View group connectivity distributions for the most significant edges from contrast 2
+nets.boxplots(ts, Pnetmats, Znet_P, p_corr[2])
 
-# View group connectivity distributions for a specific edge
-nets.boxplots(ts, Pnetmats, 39, 76, (6, 6))
+# Train a classifier on edge strengths to differentiate your groups
+nets.classify(Pnetmats, (6, 6))
 ```
