@@ -78,7 +78,13 @@ def boxplots(ts, netmats, znetmat, pnetmat, groups=None, nedges=6, edges=None):
                 f'[P value: {pval:0.4f}]']
         text = '        '.join(text)
 
-        nodeiax.set_title(text, fontsize=8, ha='left')
+        textbox = {'facecolor' : '#cccccc',
+                   'edgecolor' : '#4444ee',
+                   'alpha'     : 0.5,
+                   'pad'       : 2}
+        plotax.set_title(text, fontsize=8, x=0.01, y=1,
+                         va='top', ha='left', pad=-5,
+                         bbox=textbox, zorder=9999)
         plotaxes.append(plotax)
 
     # Make all boxplot limits equal
@@ -88,13 +94,14 @@ def boxplots(ts, netmats, znetmat, pnetmat, groups=None, nedges=6, edges=None):
     for i, p in enumerate(plotaxes):
         if i < len(plotaxes) - 1:
             p.set_xticklabels([])
+            p.xaxis.set_tick_params(which='both', size=0)
         else:
             p.set_xlabel('Edge strength')
         p.set_xlim(xmin, xmax)
 
 
     fig.suptitle(f'Most significant edges')
-    fig.subplots_adjust(0.05, 0.05, 0.95, 0.95, wspace=0, hspace=0.15)
+    fig.subplots_adjust(0.05, 0.05, 0.95, 0.95, wspace=0, hspace=0)
 
     return fig
 
@@ -258,6 +265,11 @@ def boxplot(ts, edge, netmats, groups, ax=None):
         # across the x axis below the kde plot
         scaty = np.nanmin(y) - 0.1 * (np.nanmax(y) - np.nanmin(y))
         ax.scatter(data, np.full(len(data), scaty), marker='o', alpha=0.2, color=colour)
+
+    # The boxplots function adds a title inside the
+    # top of the axis, so expand the upper y limit a bit
+    ylim = ax.get_ylim()
+    ax.set_ylim((ylim[0], ylim[1] + 0.5))
 
     # group labels
     ax.set_yticks(np.arange(0.5, len(groups) + len(groups) * gap, 1.2))
