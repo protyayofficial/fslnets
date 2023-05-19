@@ -9,9 +9,6 @@ https://fsl.fmrib.ox.ac.uk/fsl/fslwiki/FSLNets
 """
 
 
-__version__ = '0.7.0'
-
-
 from fsl.nets.boxplots  import (boxplots,
                                 boxplot,
                                 edgepic)
