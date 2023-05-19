@@ -7,10 +7,7 @@
 
 
 FSLNets is a set of simple scripts for carrying out basic network modelling
-from (typically FMRI) timeseries data. This beta-version package requires you
-to have various other software than just FSL, such as MATLAB (or Octave), and
-for now is not bundled as part of FSL. It has only been tested with MATLAB and
-Octave running on Linux/Mac.
+from (typically FMRI) timeseries data.
 
 
 The main thing you will feed into FSLNets network modelling is N timecourses
