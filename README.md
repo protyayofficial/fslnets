@@ -78,4 +78,7 @@ nets.boxplots(ts, Pnetmats, Znet_P, p_corr[2])
 
 # Train a classifier on edge strengths to differentiate your groups
 nets.classify(Pnetmats, (6, 6))
+
+# Display netmats interactively in a web browser
+nets.web(ts, (Znet_F, Znet_P), ('Full correlation', 'Partial correlation'))
 ```
