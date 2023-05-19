@@ -13,6 +13,37 @@ from   numpy import random
 
 
 def netmats(ts, method, do_rtoz=True, *args, **kwargs):
+    """Create network matrices ("netmats") from the time series for each
+    subject/run in ts.
+
+    ts:      TimeSeries object
+
+    method:  Connectivity estimation method - one of 'cov', 'amp',
+             'correlation', 'rcorr', 'partial', or 'ridgep'.
+
+    do_rtoz: Convert edge strengths to Z values. Ignored if method is
+             'cov' or 'amp'. If True, a scaling factor is estimated
+             from the time series data. Alternately, you can set this
+             to a scaling factor if known for your data.
+
+    All other arguments are passed through to the estimation function.
+
+    Returns a (runs, edges) array, containing per-subject/run netmats. Or if
+    method is 'amp', the returned array will have shape (runs, nodes).
+
+    Methods:
+     - 'cov':    covariance (non-normalised "correlation")
+     - 'amp':    only use nodes' amplitudes
+     - 'corr':   full correlation (diagonal is set to zero)
+     - 'rcorr':  full correlation after regressing out global mean timecourse
+     - 'ridgep': partial correlation using L2-norm Ridge Regression (aka
+                 Tikhonov), e.g.:
+
+                   # default regularisation rho=0.1
+                   nm = netmats(ts, 'ridgep')
+                   # rho=1
+                   nm = netmats(ts, 'ridgep', rho=1)
+    """
 
     # R to Z conversion not possible for these estimation methods
     if method in ('cov', 'covariance', 'amp', 'amplitude'):
@@ -35,13 +66,12 @@ def netmats(ts, method, do_rtoz=True, *args, **kwargs):
 
     # we are keeping just the amplitudes
     if method in ['amp', 'amplitude']:
-        nmats = np.zeros((ts.nsubjects, ts.nnodes))
+        nmats = np.zeros((ts.ndatasets, ts.nnodes))
     else:
-        nmats = np.zeros((ts.nsubjects, ts.nnodes ** 2))
+        nmats = np.zeros((ts.ndatasets, ts.nnodes ** 2))
 
-    for subj in range(ts.nsubjects):
-        subjts         = ts.subjts(subj)
-        nmats[subj, :] = func(subjts, *args, **kwargs).flatten()
+    for i, subj, run, data in ts.allts:
+        nmats[i] = func(data, *args, **kwargs).flatten()
 
     if do_rtoz:
         nmats = rtoz(ts, nmats, method, do_rtoz)
@@ -111,25 +141,25 @@ def ridgep(data, rho=0.1, partial=True):
 def rtoz(ts, nmats, method, scale):
     """R to Z transformation. """
 
+    np.random.seed(12345)
+
     if scale is not True:
-        nmats = 0.5 * np.log((1 + nmats) / (1 -  nmats)) * scale
-        return nmats
+        return 0.5 * np.log((1 + nmats) / (1 -  nmats)) * scale
 
     # quick crappy estimate of median AR(1) coefficient
-    arone = np.zeros(ts.nsubjects * ts.nnodes)
-    for i, (subj, node) in enumerate(it.product(range(ts.nsubjects), range(ts.nnodes))):
-        subjts   = ts.subjts(subj)
-        nodets   = subjts[:, node]
-        sarone   = np.sum(nodets[:-1] * nodets[1:]) / np.sum(nodets ** 2)
-        arone[i] = sarone
+    arone = np.zeros((ts.ndatasets, ts.nnodes))
+    for i, subj, run, subjts in ts.allts:
+        for node in range(ts.nnodes):
+            nodets         = subjts[:, node]
+            arone[i, node] = np.sum(nodets[:-1] * nodets[1:]) / np.sum(nodets ** 2)
+
     arone = np.median(arone)
 
     # Estimate null correlations
-    allcorrs = np.zeros((ts.nsubjects, ts.nnodes * (ts.nnodes - 1)))
-    for subj in range(ts.nsubjects):
+    allcorrs = np.zeros((ts.ndatasets, ts.nnodes * (ts.nnodes - 1)))
+    for i, subj, run, subjts in ts.allts:
 
         # create null data using the estimated AR(1) coefficient
-        slc  = ts.subjslice(subj)
         null = np.zeros((ts.ntimepoints(subj), ts.nnodes))
 
         for node in range(ts.nnodes):
@@ -147,8 +177,8 @@ def rtoz(ts, nmats, method, scale):
             nullr = (nullr / diags.T) / diags
         allcorrs[subj, :] = nullr[~np.eye(ts.nnodes, dtype=bool)].flatten()
 
-    allz       = 0.5 * np.log((1 + allcorrs) / (1 - allcorrs))
-    correction = 1 / allz.std()
-    nmats      = 0.5 * np.log((1 + nmats) / (1 -  nmats)) * correction
+    allz  = 0.5 * np.log((1 + allcorrs) / (1 - allcorrs))
+    scale = 1 / allz.std()
+    nmats = 0.5 * np.log((1 + nmats) / (1 -  nmats)) * scale
 
     return nmats

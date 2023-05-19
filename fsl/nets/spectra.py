@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-
 #
 # spectra.py - calculate and display spectrum for each node, averaged across subjects
 #
@@ -15,19 +14,20 @@ from   matplotlib.gridspec import GridSpec
 
 
 def node_spectrum(ts, node):
+    """Calculate the power spectrum for the time series of the specified node.
+    """
 
-    # TODO varying #timepoints?
+    # TODO This won't work for varying #timepoints?
+
     spectra = []
     nodeidx = ts.node_index(node)
 
-    for subj in range(ts.nsubjects):
-
-        data     = ts.subjts(subj)[:, nodeidx]
+    for i, subj, run, data in ts.allts:
+        data     = ts.ts[subj][run, :, nodeidx]
         data     = data - np.nanmean(data)
         spectrum = np.abs(fft.fft(data))
         npts     = round(len(spectrum) / 2)
         spectrum = spectrum[:npts]
-
         spectra.append(spectrum)
 
     # average node spectrum across subjects
@@ -35,12 +35,18 @@ def node_spectrum(ts, node):
 
 
 def plot_spectra(ts, ncols=4, nodes=None):
+    """Calculate and display the power spectrum for each node, averaged across
+    subjects.
+
+    ts:    TimeSeries objectg
+    ncols: Number of columns in which to arrange the per-node power spectra
+    nodes: Sequence of nodes to include (default: all good nodes)
+    """
 
     if nodes is None:
         nodes = list(ts.nodes)
 
-    havethumbs = ts.thumbnail(0) is not None
-    nnodes     = len(nodes)
+    nnodes = len(nodes)
 
     # Node plots are distributed over ncols
     # columns, and as many rows as needed.
@@ -67,22 +73,16 @@ def plot_spectra(ts, ncols=4, nodes=None):
         col      = i // nrows
         cstart   = col    * gridsz
         cend     = cstart + gridsz
-
-        if havethumbs:
-            thumbax = fig.add_subplot(grid[row, cstart])
-            plotax  = fig.add_subplot(grid[row, cstart + 1:cend])
-        else:
-            thumbax = None
-            plotax  = fig.add_subplot(grid[row, cstart:cend])
+        thumbax  = fig.add_subplot(grid[row, cstart])
+        plotax   = fig.add_subplot(grid[row, cstart + 1:cend])
 
         plotax.plot(spectrum,    color=f'C{i}', lw=2)
         plotax.plot(meanspectra, color='k',     lw=1, alpha=0.5)
         meanax.plot(spectrum,    color=f'C{i}', lw=0.5, alpha=0.5)
 
-        if havethumbs:
-            thumbnail = mplimg.imread(ts.thumbnail(node))
-            thumbax.imshow(thumbnail, aspect='equal')
-            thumbax.set_anchor('E')
+        thumbnail = mplimg.imread(ts.thumbnail(node))
+        thumbax.imshow(thumbnail, aspect='equal')
+        thumbax.set_anchor('E')
 
         for ax in [thumbax, plotax]:
             if ax is not None:

@@ -19,14 +19,52 @@ from   fsl.utils.run  import runfsl
 from   fsl.data.image import Image
 
 
-
 def load(infiles,
          tr,
          varnorm=0,
-         nruns=1,
          demean=True,
+         nruns=1,
          melodicdir=None,
          thumbnaildir=None):
+    """Load a folder full of individual runs'/subjects' node-timeseries files.
+
+    Returns a TimeSeries object through which the time series and other
+    metadata can be retrieved.
+
+    infiles:      List of files to load, or path to a dual regression
+                  directory.
+
+    tr:           Temporal resolution in seconds (assumed to be the same for
+                  all subjects/runs)
+
+    varnorm:      Whether to perform temporal variance normalisation:
+
+                   - 0: No variance normalisation (default)
+
+                   - 1: Normalise overall stddev for each run (normally one
+                        run/subject per timeseries file)
+
+                   - 2: Normalise separately each separate timeseries from
+                        each run
+
+    demean:       Whether or not to demean the time series for each subject
+                  and run
+
+    nruns:        Number of runs per subject, if per-subject time courses
+                  from separate runs have been temporally into a single
+                  file. May either be an int, where all subjects have the
+                  same number of runs, or a list specifying the number of
+                  runs per subject. All of the runs for one subject must
+                  have the same number of time points.
+
+    melodicdir:   Path to the group ICA directory that was used to define
+                  the nodes. Used to generate node thumbnails if thumbnaildir
+                  is not provided.
+
+    thumbnaildir: Path to a directory containing PNG thumbnails for each
+                  node. The PNG files must be named so that, when sorted,
+                  their order matches the node order in the input data files.
+    """
 
     if isinstance(infiles, (str, Path)):
         infiles = sorted(glob.glob(op.join(infiles, 'dr_stage1_*.txt')))
@@ -36,152 +74,76 @@ def load(infiles,
     if not isinstance(nruns, Sequence):
         nruns = [nruns] * nsubjects
 
-    timeseries = [np.loadtxt(f, dtype=np.float64) for f in infiles]
+    timeseries = []
 
-    for i, (ts, nr) in enumerate(zip(timeseries, nruns)):
+    for infile, nr in zip(infiles, nruns):
+        timeseries.append(load_file(infile, varnorm, demean, nr))
 
-        ntimepoints = ts.shape[0]
-        runlen      = ntimepoints // nr
+    ts0    = timeseries[0]
+    nnodes = ts0.shape[1]
 
-        if ntimepoints % nr != 0:
-            ValueError(f'[{infiles[i]}: ntimepoints ({ntimepoints}) '
-                       f'must be a multiple of nruns ({nr})!')
+    for i, ts in enumerate(timeseries):
+        if ts.shape[1] != nnodes:
+            raise ValueError('All input files must have the same number of '
+                             f'nodes ({infiles[i]} has {ts.shape[1]} nodes, '
+                             f'but ({infiles[0]} has {ts0.shape[1]} nodes)')
 
-        if demean:
-            ts = ts - ts.mean(axis=0)
-        # normalise across all runs
-        if varnorm == 1:
-            ts = ts / ts.std(axis=0)
-        # normalise time series from each run separately
-        elif varnorm == 2:
-            for i in range(nr):
-                start         = i     * runlen
-                end           = start + runlen
-                runts         = ts[start:end]
-                ts[start:end] = runts / runts.std(axis=0)
+    thumbs = load_thumbnails(thumbnaildir, melodicdir)
 
-        timeseries[i] = ts
-
-    timeseries = np.vstack(timeseries)
-    thumbs     = load_thumbnails(thumbnaildir, melodicdir)
-
-    return TimeSeries(timeseries, tr, nsubjects, nruns, thumbs)
+    return TimeSeries(timeseries, tr, thumbs)
 
 
-class TimeSeries:
+def load_file(infile, varnorm=0, demean=True, nruns=1):
+    """Loads a single text file containing (timepoints) rows and (nodes)
+    columns.
 
-    def __init__(self, ts, tr, nsubjects, nruns, thumbnails):
-        self.__ts            = ts
-        self.__origts        = np.copy(ts)
-        self.__tr            = tr
-        self.__nsubjects     = nsubjects
-        self.__nruns         = nruns
-        self.__orignnodes    = ts.shape[1]
-        self.__goodmask      = np.ones( ts.shape[1], dtype=bool)
-        self.__unknownmask   = np.zeros(ts.shape[1], dtype=bool)
-        self.__thumbnails    = thumbnails
+    If the text file contains multiple temporally concatenated runs (as
+    denoted by nruns), the data for each run is split into separate arrays.
+    All runs are assumed to have the same number of time points.
 
-    @property
-    def nodes(self):
-        return np.where(self.__goodmask)[0]
+    Returns a (nruns, timepoints, nodes) array.
+    """
 
-    @property
-    def orignnodes(self):
-        return self.__orignnodes
+    ts          = np.loadtxt(infile, dtype=np.float64)
+    ntimepoints = ts.shape[0]
+    nnodes      = ts.shape[1]
+    runlen      = ntimepoints // nruns
 
-    def node_index(self, node):
-        return np.where(self.nodes == node)[0][0]
+    if ntimepoints % nruns != 0:
+        ValueError(f'[{infile}: ntimepoints ({ntimepoints}) '
+                   f'must be a multiple of nruns ({nruns})!')
 
-    @property
-    def nnodes(self):
-        return self.__goodmask.sum()
+    ts = ts.reshape(nruns, runlen, nnodes)
 
-    @property
-    def orignnodes(self):
-        return self.__orignnodes
+    # demean time series from each run separately
+    if demean:
+        for run in range(nruns):
+            ts[run] = ts[run] - ts[run].mean(axis=0)
 
-    @property
-    def nsubjects(self):
-        return self.__nsubjects
+    # normalise across all runs
+    if varnorm == 1:
+        ts = ts / ts.std(axis=(0, 1))
 
-    def ntimepoints(self, subjidx=None):
-        if subjidx is None:
-            return self.__ts.shape[0]
-        else:
-            return self.__ts.shape[0] // self.nsubjects
+    # normalise time series from each run separately
+    elif varnorm == 2:
+        for run in range(nruns):
+            ts[run] = ts[run] / ts[run].std(axis=0)
 
-    def nruns(self, subjidx):
-        return self.__nruns[subjidx]
-
-    @property
-    def goodnodes(self):
-        return self.__goodmask
-
-    @property
-    def unknownnodes(self):
-        return self.__unknownmask
-
-    @property
-    def badnodes(self):
-        return ~(self.goodnodes | self.unknownnodes)
-
-    @property
-    def origts(self):
-        return np.copy(self.__origts)
-
-    @property
-    def ts(self):
-        return self.__ts
-
-    @ts.setter
-    def ts(self, newts):
-        self.__ts = newts
-
-    def subjslice(self, subjidx):
-        """
-        """
-        start  = subjidx * self.ntimepoints(subjidx)
-        end    = start   + self.ntimepoints(subjidx)
-        return slice(start, end, None)
-
-
-    def subjts(self, subjidx):
-        """
-        """
-        return self.ts[self.subjslice(subjidx)]
-
-
-    @goodnodes.setter
-    def goodnodes(self, nodes):
-        nodes = np.asanyarray(nodes)
-
-        if ((nodes < 0) | (nodes >= self.orignnodes)).any():
-            raise ValueError(f'Invalid node indices (< 0 or > {self.nnodes})')
-
-        mask            = np.zeros(self.ts.shape[1], dtype=bool)
-        mask[nodes]     = True
-        self.__goodmask = mask
-
-    @unknownnodes.setter
-    def unknownnodes(self, nodes):
-        nodes = np.asanyarray(nodes)
-
-        if ((nodes < 0) | (nodes >= self.orignnodes)).any():
-            raise ValueError(f'Invalid node indices (< 0 or > {self.nnodes})')
-
-        mask               = np.zeros(self.ts.shape[1], dtype=bool)
-        mask[nodes]        = True
-        self.__unknownmask = mask
-
-
-    def thumbnail(self, nodeidx):
-        if self.__thumbnails is None:
-            return None
-        return self.__thumbnails[nodeidx]
-
+    return ts
 
 
 def load_thumbnails(thumbnaildir, melodicdir):
+    """Loads (and generates if necessary) per-node thumbnail images.
+    Returns a list of file paths to each thumbnail.
+
+    thumbnaildir: Directory containing a thumbnail image for each node.
+                  Must be able to be sorted into the node order.
+
+    melodicdir:   Directory to the directory for the group ICA that was used
+                  to define nodes. Ignored if a thumbnaildir is provided.
+                  Otherwise, thumbnails are generated from the melodic_IC
+                  file.
+    """
 
     if thumbnaildir is None and melodicdir is None:
         return None
@@ -192,6 +154,7 @@ def load_thumbnails(thumbnaildir, melodicdir):
 
 
 def generate_thumbnails(melodicdir):
+    """Generate thumbnails from a group ICA melodic_IC file. """
 
     fsldir       = os.environ['FSLDIR']
     thumbnaildir = op.join(melodicdir, '.thumbnails')
@@ -202,11 +165,188 @@ def generate_thumbnails(melodicdir):
         os.mkdir(thumbnaildir)
 
         # assuming MNI152
-        if Image(melic).shape[:3] == (91, 109, 91): std = '2mm'
-        else:                                       std = '1mm'
+        shape = Image(melic).shape[:3]
+        if   shape == (91,  109, 91):  std = '2mm'
+        elif shape == (182, 218, 182): std = '1mm'
+        else: raise RuntimeError('Don\'t know what standard template '
+                                 f'to use for melodic_IC ({shape})')
 
         std = op.join(fsldir, 'data', 'standard', f'MNI152_T1_{std}')
 
         runfsl(f'slices_summary {melic} 4 {std} {thumbnaildir} -1')
 
     return thumbnaildir
+
+
+class TimeSeries:
+    """Class which contains a reference to per-subject and node time series
+    data, and associated metadata. Created by the load function.
+    """
+
+    def __init__(self, ts, tr, thumbnails):
+        """Create a TimeSeries object. Don't create a TimeSeries directly - use
+        the load function.
+
+        ts:         List of (nruns, ntimepoints, nnodes) arrays, one per
+                    subject.
+
+        tr:         Temporal resolution (assumed to be the same for every
+                    subject/run)
+
+        thumbnails: List of thumbnail file paths, one per node.
+        """
+
+        nnodes             = ts[0].shape[2]
+        self.__ts          = list(ts)
+        self.__origts      = list(ts)
+        self.__tr          = tr
+        self.__orignnodes  = nnodes
+        self.__goodmask    = np.ones( nnodes, dtype=bool)
+        self.__unknownmask = np.zeros(nnodes, dtype=bool)
+        self.__thumbnails  = thumbnails
+
+    @property
+    def nodes(self):
+        """Return node labels. These are the node indices into the original
+        time series. If nets.clean has been run, these will *not be* indices
+        into the current time series, as bad nodes will have been removed/
+        regressed.
+
+        To get the actual index for a given node, use the node_index method.
+        """
+        return np.where(self.__goodmask)[0]
+
+    @property
+    def nnodes(self):
+        """Number of nodes. """
+        return self.__goodmask.sum()
+
+    @property
+    def orignnodes(self):
+        """Original number of nodes, before nets.clean was called. """
+        return self.__orignnodes
+
+    def node_index(self, node):
+        """Return the index into ts for the given node. """
+        return np.where(self.nodes == node)[0][0]
+
+    @property
+    def tr(self):
+        """Return the temporal resolution (TR) of all data sets. """
+        return self.__tr
+
+    @property
+    def nsubjects(self):
+        """Number of subjects represented in ts. """
+        return len(self.__ts)
+
+    @property
+    def ndatasets(self):
+        """Total number of data sets (subjects * runs) contained in ts. """
+        return sum([t.shape[0] for t in self.ts])
+
+    def nruns(self, subjidx):
+        """Number of runs in ts for the given subject. """
+        return self.__ts[subjidx].shape[0]
+
+    def ntimepoints(self, subj=None):
+        """Number of time points in ts.
+
+        Without any arguments, returns the total number of timepoints across
+        all subjects/runs.
+
+        With a subject index, returns the number of time points for the given
+        subject (for a single run).
+        """
+        if subj is None:
+            return sum([t.shape[0] * t.shape[1] for t in self.__ts])
+        else:
+            return self.__ts[subj].shape[1]
+
+    @property
+    def ts(self):
+        """Returns the time series data - a list of (nruns, ntimepoints, nnodes)
+        arrays, one for each subject. If nets.clean has been called, bad nodes
+        will have been removed/regressed from the time series.
+        """
+        return self.__ts
+
+    @property
+    def origts(self):
+        """Returns the original time series data, prior to manipulation by
+        nets.clean.
+        """
+        return list(self.__origts)
+
+    @property
+    def allts(self):
+        """Iterate over all data sets (subjects * runs) contained in ts.
+        On each iteration, returns:
+          - dataset index
+          - subject index
+          - run index
+          - the (timepoints, nodes) array
+        """
+        i = 0
+        for subj in range(self.nsubjects):
+            for run in range(self.nruns(subj)):
+                yield i, subj, run, self.__ts[subj][run]
+                i = i + 1
+
+    def thumbnail(self, nodeidx):
+        """Return the thumbnail file path for the given node. """
+        if self.__thumbnails is None:
+            return None
+        return self.__thumbnails[nodeidx]
+
+    @ts.setter
+    def ts(self, newts):
+        """Replace the time series. Used by nets.clean. """
+        self.__ts = newts
+
+    @property
+    def goodnodes(self):
+        """Return a boolean mask denoting all of the "good" nodes. """
+        return self.__goodmask
+
+    @property
+    def unknownnodes(self):
+        """Return a boolean mask denoting all of the "unknown" nodes (neither
+        bad nor good.
+
+        These nodes will be removed from the data set by the nets.clean
+        function, but their time courses will not be regressed from
+        the good nodes if aggressive cleaning is used.
+        """
+        return self.__unknownmask
+
+    @property
+    def badnodes(self):
+        """Return a boolean mask denoting all of the "bad" nodes. """
+        return ~(self.goodnodes | self.unknownnodes)
+
+    @goodnodes.setter
+    def goodnodes(self, nodes):
+        """Specify nodes to keep. Used by nets.clean. """
+        nodes = np.asanyarray(nodes)
+
+        if ((nodes < 0) | (nodes >= self.orignnodes)).any():
+            raise ValueError(f'Invalid node indices (< 0 or > {self.nnodes})')
+
+        mask            = np.zeros(self.orignnodes, dtype=bool)
+        mask[nodes]     = True
+        self.__goodmask = mask
+
+    @unknownnodes.setter
+    def unknownnodes(self, nodes):
+        """Specify nodes that should not be kept, but should not be regressed.
+        Used by nets.clean.
+        """
+        nodes = np.asanyarray(nodes)
+
+        if ((nodes < 0) | (nodes >= self.orignnodes)).any():
+            raise ValueError(f'Invalid node indices (< 0 or > {self.nnodes})')
+
+        mask               = np.zeros(self.orignnodes, dtype=bool)
+        mask[nodes]        = True
+        self.__unknownmask = mask
