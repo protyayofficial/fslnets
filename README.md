@@ -42,7 +42,7 @@ Example usage:
 
 
 ```python
-%matplotlib tk
+%matplotlib
 import fsl.nets as nets
 
 # Load time series from a dual regression output directory
