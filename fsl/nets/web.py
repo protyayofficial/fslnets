@@ -31,7 +31,6 @@ index_template = """
 <p>
   <div id="networkCtrl" style="display: inline-block; vertical-align: top"></div>
   <div id="fullNetwork" style="display: inline"></div>
-  <div id="subNetwork"  style="display: inline"></div>
 </p>
 <script data-main="js/main" src="js/lib/require.js"></script>
 </body>
@@ -89,31 +88,29 @@ require(["netjs", "lib/d3"], function(netjs, d3) {{
   args.nodeData        = [{clusters}];
   args.nodeDataLabels  = ["Cluster number"];
   args.nodeNames       = [{names}];
-  args.nodeNameLabels  = ["Names"];
+  args.nodeNameLabels  = ["Original node indices"];
   args.linkage         = {linkage};
+  args.linkageOrder    = {linkageOrder};
   args.nodeOrders      = [{order}];
   args.nodeOrderLabels = ["Default order"];
-  args.thumbnails      = {thumbnails};
+  args.thumbnails      = [{thumbnails}];
   args.thresFunc       = thresholdMatrix;
-  args.thresVals       = [0.75];
+  args.thresVals       = [{threshold}];
   args.thresLabels     = ["Thres perc"];
   args.thresholdIdx    = 0;
-  args.nodeNameIdx     = -1;
-  args.nodeOrderIdx    = -1;
-  args.numClusters     = 10;
+  args.nodeNameIdx     = 0;
+  args.nodeOrderIdx    = -1; // use linkage by default
+  args.numClusters     = {nclusts};
 
   // Figure out a sensible canvas size.
   var w  = window.innerWidth  - 200;
   var h  = window.innerHeight - 50;
-  var sz = Math.min(w/2.0, h);
+  var sz = Math.min(w, h);
 
   display.networkDiv    = "#fullNetwork";
-  display.subNetDiv     = "#subNetwork";
   display.controlDiv    = "#networkCtrl";
   display.networkWidth  = sz;
   display.networkHeight = sz;
-  display.subNetWidth   = sz;
-  display.subNetHeight  = sz;
 
   display.highlightOn   = true;
 
@@ -126,7 +123,7 @@ require(["netjs", "lib/d3"], function(netjs, d3) {{
 """
 
 
-def web(ts, netmats, labels, savedir=None, openpage=True, thumbthres=0.25):
+def web(ts, netmats, labels, savedir=None, openpage=True, thumbthres=0.25, nclusts=6):
     """Open an interactive netmat viewer in a web browser.
 
     ts:         TimeSeries object
@@ -145,48 +142,58 @@ def web(ts, netmats, labels, savedir=None, openpage=True, thumbthres=0.25):
                 an intensity lower than this will be made transparent.
     """
 
-    names    = [f'{n}'   for n in ts.nodes]
-    labels   = [f'"{l}"' for l in labels]
-    fnetmats = [f'fnetmat{i}.txt' for i in range(len(netmats))]
-    order    = np.arange(ts.nnodes)
-    linkage  = hierarchy(netmats[0])
-    clusters = sch.fcluster(linkage, 10, 'maxclust')
-    netjs    = op.join(op.dirname(__file__), 'netjs')
+    names     = [f'{n}'   for n in ts.nodes]
+    labels    = [f'"{l}"' for l in labels]
+    fnetmats  = [f'fnetmat{i}.txt' for i in range(len(netmats))]
+    order     = np.arange(ts.nnodes)
+
+    threshold = np.percentile(np.abs(netmats[0]), 75)
+    linkage   = hierarchy(netmats[0])
+    linkOrder = sch.dendrogram(linkage, no_plot=True)['leaves']
+    clusters  = sch.fcluster(linkage, nclusts, 'maxclust')
+
+
+    netjs = op.join(op.dirname(__file__), 'netjs', 'js')
 
     if savedir is not None:
         os.makedirs(savedir, exist_ok=True)
 
     with tempdir(override=savedir):
 
-        os.mkdir('thumbnails')
+        thumbnails = []
+        os.makedirs('thumbnails', exist_ok=True)
         for i, n in enumerate(ts.nodes):
-            adjust_thumbnail(ts.thumbnail(n),
-                             op.join('thumbnails', f'{i:04d}.png'),
-                             thumbthres)
+            fname = op.join('thumbnails', f'{i:04d}.png');
+            adjust_thumbnail(ts.thumbnail(n), fname, thumbthres)
+            thumbnails.append(fname)
 
         for i, netmat in enumerate(netmats):
             np.savetxt(fnetmats[i], netmat, fmt='%0.8f')
 
         # netjs expects linkage file to be
         # MATLAB style, i.e. one-indexed.
-        np.savetxt('linkage.txt',  linkage[:, :3] + 1, fmt='%0.6f')
-        np.savetxt('clusters.txt', clusters,           fmt='%i')
-        np.savetxt('order.txt',    order,              fmt='%i')
+        np.savetxt('linkage.txt',      linkage[:, :3] + 1, fmt='%0.6f')
+        np.savetxt('linkageOrder.txt', linkOrder,          fmt='%0.6f')
+        np.savetxt('clusters.txt',     clusters,           fmt='%i')
+        np.savetxt('order.txt',        order,              fmt='%i')
 
         with open('names.txt', 'wt') as f:
             f.write('\n'.join(names))
 
         context = {
-            'netmats'    : ','.join([f'"{f}"' for f in fnetmats]),
-            'labels'     : ','.join(labels),
-            'clusters'   : '"clusters.txt"',
-            'names'      : '"names.txt"',
-            'linkage'    : '"linkage.txt"',
-            'order'      : '"order.txt"',
-            'thumbnails' : '"thumbnails"',
+            'netmats'      : ','.join([f'"{f}"' for f in fnetmats]),
+            'labels'       : ','.join(labels),
+            'clusters'     : '"clusters.txt"',
+            'names'        : '"names.txt"',
+            'linkage'      : '"linkage.txt"',
+            'linkageOrder' : '"linkageOrder.txt"',
+            'order'        : '"order.txt"',
+            'threshold'    : threshold,
+            'nclusts'      : nclusts,
+            'thumbnails'   : ','.join([f'"{f}"' for f in thumbnails]),
         }
 
-        shutil.copytree(netjs, '.', dirs_exist_ok=True)
+        shutil.copytree(netjs, 'js', dirs_exist_ok=True)
         with open('index.html', 'wt') as f:
             f.write(index_template)
         with open(op.join('js', 'main.js'), 'wt') as f:
