@@ -1,3 +1,5 @@
+recursive-exclude .git                   *
 recursive-include fsl/nets/netjs         *
 recursive-exclude fsl/nets/netjs/data    *
+recursive-exclude fsl/nets/netjs/.git    *
 recursive-exclude fsl/nets/netjs/scripts *
