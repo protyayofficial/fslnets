@@ -1,5 +1,10 @@
 #!/usr/bin/env python
 #
+# web.py - Open an interactive visualisation of a netmat connectivity matrix
+#          in a web browser. The visualisation is based on
+#          https://github.com/pauldmccarthy/netjs
+#
+
 
 import                    contextlib
 import http.server     as http
@@ -19,6 +24,7 @@ from   fsl.utils.tempdir       import tempdir
 
 from fsl.nets.hierarchy import hierarchy
 
+
 index_template = """
 <html>
 <head>
@@ -36,12 +42,11 @@ index_template = """
 </body>
 </html>
 """
+"""Template used for the web page index.html."""
 
 js_template = """
 require(["netjs", "lib/d3"], function(netjs, d3) {{
 
-  // Implement your own network edge
-  // thresholding algorithm here.
   function thresholdMatrix(matrix, args) {{
 
     var threshold   = args[0];
@@ -63,26 +68,8 @@ require(["netjs", "lib/d3"], function(netjs, d3) {{
     return thresMatrix;
   }}
 
-
-  // You need to populate two objects:
-  //
-  //    - The first one ('args' here) is passed to
-  //      the loadNetwork function, and specifies
-  //      data file locations, labels, and some
-  //      initial values. See the loadNetwork
-  //      function in netdata.js for detail on all
-  //      arguments.
-
-  //
-  //    - The second one ('display' here) is passed
-  //      to the displayNetwork function, and specifies
-  //      display settings. See the displayNetwork
-  //      function in netjs.js for details on all
-  //      required and optional arguments.
-  //
   var args             = {{}};
   var display          = {{}};
-
   args.matrices        = [{netmats}];
   args.matrixLabels    = [{labels}];
   args.nodeData        = [{clusters}];
@@ -111,19 +98,17 @@ require(["netjs", "lib/d3"], function(netjs, d3) {{
   display.controlDiv    = "#networkCtrl";
   display.networkWidth  = sz;
   display.networkHeight = sz;
-
   display.highlightOn   = true;
 
-  // Load the network, and
-  // display it when loaded.
   netjs.loadNetwork(args, function(net) {{
     netjs.displayNetwork(net, display);
   }});
 }});
 """
+"""Template used for the netjs main.js file."""
 
 
-def web(ts, netmats, labels, savedir=None, openpage=True, thumbthres=0.25, nclusts=6):
+def web(ts, netmats, labels, savedir=None, openpage=True, nclusts=6, thumbthres=0.25):
     """Open an interactive netmat viewer in a web browser.
 
     ts:         TimeSeries object
@@ -138,22 +123,23 @@ def web(ts, netmats, labels, savedir=None, openpage=True, thumbthres=0.25, nclus
     openpage:   Set to False if you don't want the web page to be opened
                 immediately.
 
+    nclusts:    Colour and separate nodes into this many clusters.
+
     thumbthres: Threshold in the range [0, 1] - pixels in thumbnail images with
                 an intensity lower than this will be made transparent.
     """
 
-    names     = [f'{n}'   for n in ts.nodes]
-    labels    = [f'"{l}"' for l in labels]
-    fnetmats  = [f'fnetmat{i}.txt' for i in range(len(netmats))]
-    order     = np.arange(ts.nnodes)
+    netjs    = op.join(op.dirname(__file__), 'netjs', 'js')
+    names    = [f'{n}'   for n in ts.nodes]
+    labels   = [f'"{l}"' for l in labels]
+    fnetmats = [f'fnetmat{i}.txt' for i in range(len(netmats))]
+    order    = np.arange(ts.nnodes)
 
+    # generate hierarchy/linkage and cluster labels
     threshold = np.percentile(np.abs(netmats[0]), 75)
     linkage   = hierarchy(netmats[0])
     linkOrder = sch.dendrogram(linkage, no_plot=True)['leaves']
     clusters  = sch.fcluster(linkage, nclusts, 'maxclust')
-
-
-    netjs = op.join(op.dirname(__file__), 'netjs', 'js')
 
     if savedir is not None:
         os.makedirs(savedir, exist_ok=True)

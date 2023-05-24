@@ -48,7 +48,8 @@ ts = nets.load('./groupICA100.dr/', 0.72, thumbnaildir='./groupICA100.sum/')
 # View node time series power spectra
 nets.plot_spectra(ts)
 
-# Regress out the time courses of bad nodes/components
+# Build a list of the indices of good nodes
+# (those which represent signal and not noise)
 goodnodes = [0,  1,  2,  4,  5,  6,  7,  8, 10, 11,
              12, 16, 17, 18, 19, 20, 21, 22, 24, 25,
              26, 27, 28, 29, 30, 31, 32, 33, 34, 35,
@@ -57,6 +58,7 @@ goodnodes = [0,  1,  2,  4,  5,  6,  7,  8, 10, 11,
              65, 69, 70, 71, 72, 73, 76, 79, 80, 85,
              86, 92, 96]
 
+# Regress out the time courses of bad nodes/components
 nets.clean(ts, goodnodes, True)
 
 # Calculate connectivity estimates

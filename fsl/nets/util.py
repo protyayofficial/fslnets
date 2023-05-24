@@ -3,6 +3,7 @@
 
 
 def printTitle(title):
+    """Convenience function which prints a title. """
     print()
     print('-' * len(title))
     print(title)
