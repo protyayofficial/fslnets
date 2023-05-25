@@ -40,10 +40,18 @@ Example usage:
 
 ```python
 %matplotlib
+
+from glob import glob
 import fsl.nets as nets
 
 # Load time series from a dual regression output directory
 ts = nets.load('./groupICA100.dr/', 0.72, thumbnaildir='./groupICA100.sum/')
+
+# Or generate time series from a set of
+# images using stage 1 of dual regression
+subjdata = glob('subject_*/filtered_func_data_standard.nii.gz')
+melic    = 'groupICA/melodic_IC.nii.gz'
+ts       = nets.load_from_images(melic, subjdata, 0.72)
 
 # View node time series power spectra
 nets.plot_spectra(ts)

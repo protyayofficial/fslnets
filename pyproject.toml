@@ -21,6 +21,7 @@ authors = [
 
 dependencies = [
   "fslpy",
+  "fsl-pipe",
   "matplotlib",
   "numpy",
   "scikit-learn",

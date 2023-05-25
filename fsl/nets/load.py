@@ -11,12 +11,17 @@
 import                        glob
 import                        os
 import os.path         as     op
+import                        tempfile
 from   pathlib         import Path
 from   collections.abc import Sequence
 
-import numpy          as     np
-from   fsl.utils.run  import runfsl
-from   fsl.data.image import Image
+
+
+import numpy             as     np
+from   fsl.utils.tempdir import tempdir
+from   fsl.utils.run     import runfsl
+from   fsl.data.image    import Image
+from   fsl.nets          import dualreg
 
 
 def load(infiles,
@@ -24,7 +29,7 @@ def load(infiles,
          varnorm=0,
          demean=True,
          nruns=1,
-         melodicdir=None,
+         spatialmaps=None,
          thumbnaildir=None):
     """Load a folder full of individual runs'/subjects' node-timeseries files.
 
@@ -57,9 +62,9 @@ def load(infiles,
                   runs per subject. All of the runs for one subject must
                   have the same number of time points.
 
-    melodicdir:   Path to the group ICA directory that was used to define
-                  the nodes. Used to generate node thumbnails if thumbnaildir
-                  is not provided.
+    spatialmaps:  4D image which contains spatial maps representing the nodes.
+                  Used to generate node thumbnails if thumbnaildir is not
+                  provided.
 
     thumbnaildir: Path to a directory containing PNG thumbnails for each
                   node. The PNG files must be named so that, when sorted,
@@ -88,7 +93,7 @@ def load(infiles,
                              f'nodes ({infiles[i]} has {ts.shape[1]} nodes, '
                              f'but ({infiles[0]} has {ts0.shape[1]} nodes)')
 
-    thumbs = load_thumbnails(thumbnaildir, melodicdir)
+    thumbs = load_thumbnails(thumbnaildir, spatialmaps)
 
     return TimeSeries(timeseries, tr, thumbs)
 
@@ -132,53 +137,81 @@ def load_file(infile, varnorm=0, demean=True, nruns=1):
     return ts
 
 
-def load_thumbnails(thumbnaildir, melodicdir):
+def load_from_images(spatialmaps, subjfiles, *args, **kwargs):
+    """Use dual regression stage 1 to generate the subject-specific time series
+    for each component/node contained in the spatial map file.
+    """
+
+    spatialmaps = op.abspath(spatialmaps)
+    subjfiles   = [op.abspath(f) for f in subjfiles]
+    timeseries  = []
+
+    with tempdir():
+        dualreg.create_common_mask(subjfiles, 'mask')
+
+        for i, subjfile in enumerate(subjfiles):
+            outfile = f'{i}.txt'
+            dualreg.stage1(spatialmaps, subjfile, 'mask', outfile)
+            timeseries.append(outfile)
+
+        return load(timeseries, *args, spatialmaps=spatialmaps, **kwargs)
+
+
+def load_thumbnails(thumbnaildir, spatialmaps):
     """Loads (and generates if necessary) per-node thumbnail images.
     Returns a list of file paths to each thumbnail.
 
     thumbnaildir: Directory containing a thumbnail image for each node.
                   Must be able to be sorted into the node order.
 
-    melodicdir:   Directory to the directory for the group ICA that was used
-                  to define nodes. Ignored if a thumbnaildir is provided.
-                  Otherwise, thumbnails are generated from the melodic_IC
-                  file.
+    spatialmaps: 4D image which contains spatial maps representing the nodes.
+                  Ignored if a thumbnaildir is provided.  Otherwise,
+                  thumbnails are generated from this file.
     """
 
     if thumbnaildir is not None:
         thumbnaildir = op.abspath(thumbnaildir)
-    if melodicdir is not None:
-        melodicdir = op.abspath(melodicdir)
+    if spatialmaps is not None:
+        spatialmaps = op.abspath(spatialmaps)
 
-    if thumbnaildir is None and melodicdir is None:
+    if thumbnaildir is None and spatialmaps is None:
         return None
     if thumbnaildir is None:
-        thumbnaildir = generate_thumbnails(melodicdir)
+        thumbnaildir = generate_thumbnails(spatialmaps)
 
     return sorted(glob.glob(op.join(thumbnaildir, '*.png')))
 
 
-def generate_thumbnails(melodicdir):
-    """Generate thumbnails from a group ICA melodic_IC file. """
+def generate_thumbnails(spatialmaps, bgimage=None):
+    """Generate thumbnails from a 4D image. """
 
+    # We try to save the thumbnails alongside the
+    # file, in a directory called .{filename}.thumbnails
+    filename     = op.basename(spatialmaps)
+    dirname      = op.dirname(spatialmaps)
+    thumbnaildir = op.join(dirname, f'.{filename}.thumbnails')
     fsldir       = os.environ['FSLDIR']
-    thumbnaildir = op.join(melodicdir, '.thumbnails')
-    melic        = op.join(melodicdir, 'melodic_IC')
 
-    if not op.exists(thumbnaildir):
+    if op.exists(thumbnaildir):
+        return thumbnaildir
 
-        os.mkdir(thumbnaildir)
+    try:
+        os.makedirs(thumbnaildir, exist_ok=True)
+    except Exception:
+        thumbnaildir = tempfile.mkdtemp(prefix=op.basename(thumbnaildir))
 
+    if bgimage is None:
         # assuming MNI152
-        shape = Image(melic).shape[:3]
+        shape = Image(spatialmaps).shape[:3]
+
         if   shape == (91,  109, 91):  std = '2mm'
         elif shape == (182, 218, 182): std = '1mm'
         else: raise RuntimeError('Don\'t know what standard template '
                                  f'to use for melodic_IC ({shape})')
 
-        std = op.join(fsldir, 'data', 'standard', f'MNI152_T1_{std}')
+        bgimage = op.join(fsldir, 'data', 'standard', f'MNI152_T1_{std}')
 
-        runfsl(f'slices_summary {melic} 4 {std} {thumbnaildir} -1')
+    runfsl(f'slices_summary {spatialmaps} 4 {bgimage} {thumbnaildir} -1')
 
     return thumbnaildir
 
