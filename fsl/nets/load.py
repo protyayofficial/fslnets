@@ -55,12 +55,12 @@ def load(infiles,
     demean:       Whether or not to demean the time series for each subject
                   and run
 
-    nruns:        Number of runs per subject, if per-subject time courses
-                  from separate runs have been temporally into a single
-                  file. May either be an int, where all subjects have the
-                  same number of runs, or a list specifying the number of
-                  runs per subject. All of the runs for one subject must
-                  have the same number of time points.
+    nruns:        Number of runs per subject, if per-subject time courses from
+                  separate runs have been temporally concatenated into a
+                  single file. May either be an int, where all subjects have
+                  the same number of runs, or a list specifying the number of
+                  runs per subject. All of the runs for one subject must have
+                  the same number of time points.
 
     spatialmaps:  4D image which contains spatial maps representing the nodes.
                   Used to generate node thumbnails if thumbnaildir is not
@@ -115,8 +115,8 @@ def load_file(infile, varnorm=0, demean=True, nruns=1):
     runlen      = ntimepoints // nruns
 
     if ntimepoints % nruns != 0:
-        ValueError(f'[{infile}: ntimepoints ({ntimepoints}) '
-                   f'must be a multiple of nruns ({nruns})!')
+        raise ValueError(f'[{infile}: ntimepoints ({ntimepoints}) '
+                         f'must be a multiple of nruns ({nruns})!')
 
     ts = ts.reshape(nruns, runlen, nnodes)
 
