@@ -17,7 +17,8 @@ def node_spectrum(ts, node):
     """Calculate the power spectrum for the time series of the specified node.
     """
 
-    # TODO This won't work for varying #timepoints?
+    # TODO This won't work for varying #timepoints - we're
+    # assuming here that all runs have the same length
 
     spectra = []
     nodeidx = ts.node_index(node)
@@ -64,7 +65,9 @@ def plot_spectra(ts, ncols=4, nodes=None):
     grid        = GridSpec(meanrows + nrows, ncols * gridsz, figure=fig)
     meanax      = fig.add_subplot(grid[nrows:nrows + meanrows, :])
     spectra     = [node_spectrum(ts, n) for n in nodes]
+    spectra     = [s / s.max() for s in spectra]
     meanspectra = np.median(spectra, axis=0)
+    freqs       = fft.rfftfreq(500, ts.tr)[:-1]
 
     for i, node in enumerate(nodes):
 
@@ -76,34 +79,30 @@ def plot_spectra(ts, ncols=4, nodes=None):
         thumbax  = fig.add_subplot(grid[row, cstart])
         plotax   = fig.add_subplot(grid[row, cstart + 1:cend])
 
-        plotax.plot(spectrum,    color=f'C{i}', lw=2)
-        plotax.plot(meanspectra, color='k',     lw=1, alpha=0.5)
-        meanax.plot(spectrum,    color=f'C{i}', lw=0.5, alpha=0.5)
+        plotax.plot(freqs, spectrum,    color=f'C{i}', lw=2)
+        plotax.plot(freqs, meanspectra, color='k',     lw=1,   alpha=0.5)
+        meanax.plot(freqs, spectrum,    color=f'C{i}', lw=0.5, alpha=0.5)
 
         thumbnail = mplimg.imread(ts.thumbnail(node))
         thumbax.imshow(thumbnail, aspect='equal')
         thumbax.set_anchor('E')
 
         for ax in [thumbax, plotax]:
-            if ax is not None:
-                ax.axis('off')
-                ax.set_xticks([])
-                ax.set_yticks([])
+            ax.axis('off')
+            ax.set_xticks([])
+            ax.set_yticks([])
 
-        if thumbax is not None: titleax = thumbax
-        else:                   titleax = plotax
-        titleax.set_title(str(node), x=0, y=0.5, fontsize=8,
+        thumbax.set_title(str(node), x=0, y=0.5, fontsize=8,
                           verticalalignment='top',
                           horizontalalignment='right')
 
-    meanax.plot(np.median(spectra, axis=0), color='k', lw=2)
+    meanax.plot(freqs, meanspectra, color='k', lw=2)
     meanax.autoscale(enable=True, tight=True)
     meanax.spines['right'].set_visible(False)
     meanax.spines['top']  .set_visible(False)
-    meanax.set_xticks([])
     meanax.set_yticks([])
     meanax.set_ylabel('Amplitude')
-    meanax.set_xlabel('Frequency')
+    meanax.set_xlabel('Frequency (Hz)')
     meanax.set_title('Median across all nodes', y=0)
 
     fig.subplots_adjust(0.05, 0.05, 0.95, 0.95, 0, 0)
