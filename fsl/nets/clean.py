@@ -15,9 +15,9 @@ def clean(ts, goodnodes, aggressive=False):
     good node time courses.
 
     After calling this function, ts.nodes will contain only the good nodes,
-    and ts.ts will be of shape (goodnodes, timepoints). You can convert a node
-    label into a node index (to use in ts.ts) via the TimeSeries.node_index
-    method.
+    and each array in ts.ts will be of shape (nruns, ntimepoints,
+    ngoodnodes). You can convert a node label into a node index (to use in
+    ts.ts) via the TimeSeries.node_index method.
 
     goodnodes:  List of IDs of nodes to keep
 
