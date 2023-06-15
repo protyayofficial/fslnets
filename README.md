@@ -35,7 +35,7 @@ difference, or feeding the whole matrices into multivariate discriminant
 analysis.
 
 
-Example usage:
+## Example usage
 
 
 ```python
@@ -91,4 +91,27 @@ nets.classify(Pnetmats, (6, 6))
 
 # Display netmats interactively in a web browser
 nets.web(ts, (Znet_F, Znet_P), ('Full correlation', 'Partial correlation'))
+```
+
+
+## Installation
+
+FSLNets is installed as part of FSL 6.0.6.6. To use it, start a FSL Python
+session with  `fslipython`, `fslpython`, or `fslnotebook`.
+
+FSLNets can also be installed independently of FSL with `conda`. For example:
+
+```
+conda create                                                  \
+  -c https://fsl.fmrib.ox.ac.uk/fsldownloads/fslconda/public/ \
+  -c conda-forge                                              \
+  -p ./fslnets.env                                            \
+  fsl-nets ipython
+```
+
+Finally, FSLNets can be installed into a Python environment with `pip`
+(however, this method will **not** install any FSL dependencies):
+
+```
+pip install git+https://git.fmrib.ox.ac.uk/fsl/fslnets.git
 ```
