@@ -54,7 +54,7 @@ def glm(ts, netmats, design, contrasts, nperms=5000, plot=True, title=None):
     nedges     = netmats.shape[1]
     confile    = op.abspath(contrasts)
     design     = op.abspath(design)
-    contrasts  = vest.loadVestFile(confile)
+    contrasts  = np.atleast_2d(vest.loadVestFile(confile))
     ncontrasts = contrasts.shape[0]
 
     # Average netmats within subject across runs
@@ -128,8 +128,10 @@ def plot_pvalues(ts, pvals, title=None):
     tril[np.tril_indices(shape[0], -1)] = True
     triu[np.triu_indices(shape[0],  1)] = True
 
-    axes   = fig.subplots(1, ncontrasts)
     meshes = []
+    axes   = fig.subplots(1, ncontrasts)
+    if ncontrasts == 1:
+        axes = [axes]
 
     for ax, contrast in zip(axes, range(ncontrasts)):
 
