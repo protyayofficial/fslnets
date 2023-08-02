@@ -7,6 +7,7 @@
 
 
 import                    contextlib
+import functools       as ft
 import http.server     as http
 import os.path         as op
 import                    os
@@ -108,6 +109,41 @@ require(["netjs", "lib/d3"], function(netjs, d3) {{
 """Template used for the netjs main.js file."""
 
 
+BASE_EXPECTED_REQUESTS = 16
+"""Base number of HTTP requests to expect when the netjs page is opened in
+a web browser. The total number of requests to expect is this, plus the
+number of netmats (correlation matrix files), plus the number of nodes
+(thumbnails). The expected number of base files corresponds to the following
+files:
+
+ - index.html
+ - js/lib/require.js
+ - js/main.js
+ - js/netjs.js
+ - js/lib/d3.js
+ - js/netvis.js
+ - js/netdata.js
+ - js/netctrl.js
+ - js/netvis_dynamics.js
+ - js/lib/mustache.js
+ - linkage.txt
+ - linkageOrder.txt
+ - clusters.txt
+ - names.txt
+ - order.txt
+ - js/netctrl.html
+
+This number is obviously very tightly coupled to the netjs implementation, and
+would need to be updated whenever netjs is updated.
+"""
+
+
+MAX_SERVER_RUNTIME = 15
+"""Maximum number of seconds to keep the temporary HTTP server open while
+waiting for the web browser to load the netjs page.
+"""
+
+
 def web(ts, netmats, labels, savedir=None, openpage=True, nclusts=6, thumbthres=0.25):
     """Open an interactive netmat viewer in a web browser.
 
@@ -186,10 +222,25 @@ def web(ts, netmats, labels, savedir=None, openpage=True, nclusts=6, thumbthres=
             f.write(js_template.format(**context))
 
         if openpage:
+
+            # If we are opening the netjs page in a web
+            # browser, we start a HTTP server, open the
+            # netjs page, and wait until either the server
+            # has processed a suitable number of requests,
+            # or MAX_SERVER_RUNTIME seconds have elapsed.
+            elapsed = 0
+            timeout = MAX_SERVER_RUNTIME
+            expreqs = BASE_EXPECTED_REQUESTS + len(netmats) + ts.nnodes
+
             with HTTPServer.server() as srv:
+
                 url = f'{srv.url}/index.html'
                 webbrowser.open_new_tab(url)
-                time.sleep(5)
+
+                while srv.numrequests < expreqs and elapsed < timeout:
+                    time.sleep(0.5)
+                    elapsed += 0.5
+
                 srv.shutdown.set()
 
 
@@ -252,11 +303,12 @@ class HTTPServer(mp.Process):
 
     def __init__(self, rootdir):
         mp.Process.__init__(self)
-        self.daemon   = True
-        self.rootdir  = rootdir
-        self.portval  = mp.Value('i', -1)
-        self.startup  = mp.Event()
-        self.shutdown = mp.Event()
+        self.daemon         = True
+        self.rootdir        = rootdir
+        self.portval        = mp.Value('i', -1)
+        self.startup        = mp.Event()
+        self.shutdown       = mp.Event()
+        self.requestcounter = mp.Value('i', 0)
 
     def stop(self):
         self.shutdown.set()
@@ -265,17 +317,50 @@ class HTTPServer(mp.Process):
     def port(self):
         return self.portval.value
 
+    @property
+    def numrequests(self):
+        return self.requestcounter.value
+
     def run(self):
-        # Suppress log messages
-        handler             = http.SimpleHTTPRequestHandler
-        handler.log_message = lambda *a: None
-        server              = http.HTTPServer(('', 0), handler)
+        # Use a custom HTTPRequestHandler
+        # class to count successful requests.
+        handler = HTTPRequestHandler.factory(self.requestcounter)
+        server  = http.HTTPServer(('', 0), handler)
 
         # store port number, notify startup
         self.portval.value = server.server_address[1]
         self.startup.set()
 
+        # Configure the handle_request method
+        # to wait for up to half a second for
+        # a request before returning.
+        server.timeout = 0.5
+
+        # Serve until the stop() method is called.
         with indir(self.rootdir):
             while not self.shutdown.is_set():
                 server.handle_request()
             server.shutdown()
+
+
+class HTTPRequestHandler(http.SimpleHTTPRequestHandler):
+    """Custom HTTPRequestHandler which updates a shared multiprocessing.Value
+    instance whenever a successful HTTP 200 request is processed.
+    """
+
+    @staticmethod
+    def factory(requestcounter):
+        return ft.partial(HTTPRequestHandler, requestcounter)
+
+    def __init__(self, requestcounter, *args, **kwargs):
+        self.requestcounter = requestcounter
+        super().__init__(*args, **kwargs)
+
+    def log_message(self, *args, **kwargs):
+        """Suppress logging output. """
+
+    def log_request(self, code='-', size='-'):
+        """Increment the request counter on HTTP 200. """
+        super().log_request(code, size)
+        if code == 200:
+            self.requestcounter.value += 1
