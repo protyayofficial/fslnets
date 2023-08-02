@@ -1,6 +1,6 @@
 [project]
 name              = "fslnets"
-version           = "0.7.1"
+version           = "0.7.2"
 description       = "A set of simple scripts for carrying out basic network modelling from (typically FMRI) timeseries data."
 readme            = "README.md"
 requires-python   = ">=3.7"
