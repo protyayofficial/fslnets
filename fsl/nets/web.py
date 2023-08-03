@@ -327,29 +327,29 @@ class HTTPServer(mp.Process):
         return self.requestcounter.value
 
     def run(self):
-        # Use a custom HTTPRequestHandler
-        # class to count successful requests.
-        handler = HTTPRequestHandler.factory(self.requestcounter)
-        server  = http.HTTPServer(('', 0), handler)
+        try:
+            # Use a custom HTTPRequestHandler
+            # class to count successful requests.
+            handler = HTTPRequestHandler.factory(self.requestcounter)
+            server  = http.HTTPServer(('', 0), handler)
 
-        # store port number, notify startup
-        self.portval.value = server.server_address[1]
-        self.startup.set()
+            # store port number, notify startup
+            self.portval.value = server.server_address[1]
+            self.startup.set()
 
-        # Configure the handle_request method
-        # to wait for up to half a second for
-        # a request before returning.
-        server.timeout = 0.5
+            # Configure the handle_request method
+            # to wait for up to half a second for
+            # a request before returning.
+            server.timeout = 0.5
 
-        # Serve until the stop() method is called.
-        with indir(self.rootdir):
-            try:
+            # Serve until the stop() method is called.
+            with indir(self.rootdir):
                 while not self.shutdown.is_set():
                     server.handle_request()
                 server.shutdown()
-            # set the shutdown event on error
-            finally:
-                self.stop()
+        # set the shutdown event on error
+        finally:
+            self.stop()
 
 
 class HTTPRequestHandler(http.SimpleHTTPRequestHandler):
