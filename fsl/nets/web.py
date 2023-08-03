@@ -237,7 +237,9 @@ def web(ts, netmats, labels, savedir=None, openpage=True, nclusts=6, thumbthres=
                 url = f'{srv.url}/index.html'
                 webbrowser.open_new_tab(url)
 
-                while srv.numrequests < expreqs and elapsed < timeout:
+                while all((srv.numrequests < expreqs,
+                           elapsed < timeout,
+                           srv.is_running())):
                     time.sleep(0.5)
                     elapsed += 0.5
 
@@ -313,6 +315,9 @@ class HTTPServer(mp.Process):
     def stop(self):
         self.shutdown.set()
 
+    def is_running(self):
+        return not self.shutdown.is_set()
+
     @property
     def port(self):
         return self.portval.value
@@ -322,25 +327,29 @@ class HTTPServer(mp.Process):
         return self.requestcounter.value
 
     def run(self):
-        # Use a custom HTTPRequestHandler
-        # class to count successful requests.
-        handler = HTTPRequestHandler.factory(self.requestcounter)
-        server  = http.HTTPServer(('', 0), handler)
+        try:
+            # Use a custom HTTPRequestHandler
+            # class to count successful requests.
+            handler = HTTPRequestHandler.factory(self.requestcounter)
+            server  = http.HTTPServer(('', 0), handler)
 
-        # store port number, notify startup
-        self.portval.value = server.server_address[1]
-        self.startup.set()
+            # store port number, notify startup
+            self.portval.value = server.server_address[1]
+            self.startup.set()
 
-        # Configure the handle_request method
-        # to wait for up to half a second for
-        # a request before returning.
-        server.timeout = 0.5
+            # Configure the handle_request method
+            # to wait for up to half a second for
+            # a request before returning.
+            server.timeout = 0.5
 
-        # Serve until the stop() method is called.
-        with indir(self.rootdir):
-            while not self.shutdown.is_set():
-                server.handle_request()
-            server.shutdown()
+            # Serve until the stop() method is called.
+            with indir(self.rootdir):
+                while not self.shutdown.is_set():
+                    server.handle_request()
+                server.shutdown()
+        # set the shutdown event on error
+        finally:
+            self.stop()
 
 
 class HTTPRequestHandler(http.SimpleHTTPRequestHandler):
