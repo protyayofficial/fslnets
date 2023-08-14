@@ -85,13 +85,13 @@ def load(infiles,
         timeseries.append(load_file(infile, varnorm, demean, nr))
 
     ts0    = timeseries[0]
-    nnodes = ts0.shape[1]
+    nnodes = ts0.shape[2]
 
     for i, ts in enumerate(timeseries):
-        if ts.shape[1] != nnodes:
+        if ts.shape[2] != nnodes:
             raise ValueError('All input files must have the same number of '
-                             f'nodes ({infiles[i]} has {ts.shape[1]} nodes, '
-                             f'but ({infiles[0]} has {ts0.shape[1]} nodes)')
+                             f'nodes ({infiles[i]} has {ts.shape[2]} nodes, '
+                             f'but ({infiles[0]} has {ts0.shape[2]} nodes)')
 
     thumbs = load_thumbnails(thumbnaildir, spatialmaps)
 
@@ -285,7 +285,7 @@ class TimeSeries:
 
     def datasets(self, subj):
         """Returns indices for all datasets/runs for the given subject. """
-        offset = sum([self.nruns(s) for s in range(subj)])
+        offset = sum(self.nruns(s) for s in range(subj))
         return range(offset, offset + self.nruns(subj))
 
     def nruns(self, subjidx):
