@@ -34,3 +34,13 @@ dependencies = [
 
 [tool.setuptools.packages.find]
 include = ["fsl", "fsl.nets"]
+
+
+[tool.coverage.run]
+include = ["fsl/nets/*"]
+omit    = ["fsl/nets/test/*"]
+
+
+[tool.pytest.ini_options]
+testpaths = ["fsl/nets/test"]
+addopts   = "-v --showlocals --cov=fsl/nets/"
