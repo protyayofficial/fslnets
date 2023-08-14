@@ -8,27 +8,23 @@
 
 import numpy               as     np
 import numpy.fft           as     fft
+import scipy.signal        as     signal
 import matplotlib.pyplot   as     plt
 import matplotlib.image    as     mplimg
 from   matplotlib.gridspec import GridSpec
 
 
-def node_spectrum(ts, node):
+def node_spectrum(ts, node, windowlen):
     """Calculate the power spectrum for the time series of the specified node.
     """
-
-    # TODO This won't work for varying #timepoints - we're
-    # assuming here that all runs have the same length
 
     spectra = []
     nodeidx = ts.node_index(node)
 
     for i, subj, run, data in ts.allts:
-        data     = ts.ts[subj][run, :, nodeidx]
-        data     = data - np.nanmean(data)
-        spectrum = np.abs(fft.fft(data))
-        npts     = round(len(spectrum) / 2)
-        spectrum = spectrum[:npts]
+        data        = data[:, nodeidx]
+        data        = data - np.nanmean(data)
+        _, spectrum = signal.welch(data, fs=1 / ts.tr, nperseg=windowlen)
         spectra.append(spectrum)
 
     # average node spectrum across subjects
@@ -57,6 +53,13 @@ def plot_spectra(ts, ncols=4, nodes=None):
     # columns, and spans 25% of the height
     meanrows = int(np.ceil(0.50 * nrows))
 
+    # Window length for FFT calculation -
+    # we use the same window length for
+    # all data sets, to accommodate
+    # varying numbers of timepoints.
+    windowlen = min(ts.ntimepoints(subj) for subj in range(ts.nsubjects))
+    freqs     = fft.rfftfreq(windowlen, ts.tr)
+
     # And each node plot actually spans six
     # columns (1=thumbnail, 5=spectrum), so
     # we actually have ncols*6 columns.
@@ -64,10 +67,9 @@ def plot_spectra(ts, ncols=4, nodes=None):
     fig         = plt.figure()
     grid        = GridSpec(meanrows + nrows, ncols * gridsz, figure=fig)
     meanax      = fig.add_subplot(grid[nrows:nrows + meanrows, :])
-    spectra     = [node_spectrum(ts, n) for n in nodes]
+    spectra     = [node_spectrum(ts, n, windowlen) for n in nodes]
     spectra     = [s / s.max() for s in spectra]
     meanspectra = np.median(spectra, axis=0)
-    freqs       = fft.rfftfreq(500, ts.tr)[:-1]
 
     for i, node in enumerate(nodes):
 
