@@ -7,6 +7,7 @@
 #
 
 import numpy               as     np
+import numpy.random        as     rnd
 import numpy.fft           as     fft
 import scipy.signal        as     signal
 import matplotlib.pyplot   as     plt
@@ -35,7 +36,7 @@ def plot_spectra(ts, ncols=4, nodes=None):
     """Calculate and display the power spectrum for each node, averaged across
     subjects.
 
-    ts:    TimeSeries objectg
+    ts:    TimeSeries object
     ncols: Number of columns in which to arrange the per-node power spectra
     nodes: Sequence of nodes to include (default: all good nodes)
     """
@@ -109,4 +110,68 @@ def plot_spectra(ts, ncols=4, nodes=None):
 
     fig.subplots_adjust(0.05, 0.05, 0.95, 0.95, 0, 0)
     fig.suptitle('Node time series power spectra')
+    return fig
+
+
+def plot_timeseries(ts, ncols=2, nodes=None, subjects=None):
+    """Calculate and display the time series for the specified nodes and subjects.
+
+    ts:       TimeSeries object
+    ncols:    Number of columns in which to arrange the per-node power spectra
+    nodes:    Sequence of nodes to include (default: 8 randomly selected nodes)
+    subjects: Subjects to include (default: 4 randomly selected subjects)
+    """
+
+    if nodes is None:
+        nnodes = min(ts.nnodes, 8)
+        nodes  = sorted(rnd.choice(ts.nodes, 8, replace=False))
+    if subjects is None:
+        nsubjs   = min(ts.nsubjects, 4)
+        subjects = sorted(rnd.choice(np.arange(ts.nsubjects), nsubjs, replace=False))
+
+    # See comments in plot_spectra for an
+    # overview of the grid layout logic.
+    nnodes = len(nodes)
+    nrows  = int(np.ceil(nnodes / ncols))
+    gridsz = 6
+    fig    = plt.figure()
+    grid   = GridSpec(nrows, ncols * gridsz, figure=fig)
+
+    for i, node in enumerate(nodes):
+
+        row      = i %  nrows
+        col      = i // nrows
+        cstart   = col    * gridsz
+        cend     = cstart + gridsz
+        thumbax  = fig.add_subplot(grid[row, cstart])
+        plotax   = fig.add_subplot(grid[row, cstart + 1:cend])
+
+        nodeidx = ts.node_index(node)
+        for voff, subj in enumerate(subjects):
+            for run in range(ts.nruns(subj)):
+                data = ts.ts[subj][run, :, nodeidx]
+                data = (data - data.min()) / (data.max() - data.min())
+                plotax.plot(voff + data, color='k', alpha=0.5, lw=0.5)
+
+        thumbnail = mplimg.imread(ts.thumbnail(node))
+        thumbax.imshow(thumbnail, aspect='equal')
+        thumbax.set_anchor('E')
+
+        thumbax.axis('off')
+        plotax.tick_params(axis='both', which='both', left=False, bottom=False)
+        plotax.tick_params(axis='y', direction='in', pad=-20)
+        plotax.spines['left']  .set_visible(False)
+        plotax.spines['right'] .set_visible(False)
+        plotax.spines['bottom'].set_visible(False)
+        plotax.spines['top']   .set_visible(False)
+        plotax.set_xticks([])
+        plotax.set_yticks(np.arange(0.5, len(subjects) + 0.5))
+        plotax.set_yticklabels(map(str, subjects), va='center')
+
+        thumbax.set_title(str(node), x=0, y=0.5, fontsize=8,
+                          verticalalignment='top',
+                          horizontalalignment='right')
+
+    fig.subplots_adjust(0.05, 0.05, 0.95, 0.95, 0, 0)
+    fig.suptitle('Node time series')
     return fig
