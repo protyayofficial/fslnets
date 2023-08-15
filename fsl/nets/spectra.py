@@ -114,18 +114,18 @@ def plot_spectra(ts, ncols=4, nodes=None):
     return fig
 
 
-def plot_timeseries(ts, ncols=2, nodes=None, subjects=None):
+def plot_timeseries(ts, ncols=3, nodes=None, subjects=None):
     """Calculate and display the time series for the specified nodes and subjects.
 
     ts:       TimeSeries object
     ncols:    Number of columns in which to arrange the per-node power spectra
-    nodes:    Sequence of nodes to include (default: 8 randomly selected nodes)
+    nodes:    Sequence of nodes to include (default: 30 randomly selected nodes)
     subjects: Subjects to include (default: 4 randomly selected subjects)
     """
 
     if nodes is None:
-        nnodes = min(ts.nnodes, 8)
-        nodes  = sorted(rnd.choice(ts.nodes, 8, replace=False))
+        nnodes = min(ts.nnodes, 30)
+        nodes  = sorted(rnd.choice(ts.nodes, nnodes, replace=False))
     if subjects is None:
         nsubjs   = min(ts.nsubjects, 4)
         subjects = sorted(rnd.choice(np.arange(ts.nsubjects), nsubjs, replace=False))
