@@ -125,10 +125,12 @@ def plot_timeseries(ts, ncols=3, nodes=None, subjects=None):
 
     if nodes is None:
         nnodes = min(ts.nnodes, 30)
-        nodes  = sorted(rnd.choice(ts.nodes, nnodes, replace=False))
+        nodes  = rnd.choice(ts.nodes, nnodes, replace=False)
+        nodes  = sorted(nodes)
     if subjects is None:
         nsubjs   = min(ts.nsubjects, 4)
-        subjects = sorted(rnd.choice(np.arange(ts.nsubjects), nsubjs, replace=False))
+        subjects = rnd.choice(np.arange(ts.nsubjects), nsubjs, replace=False)
+        subjects = sorted(subjects)
 
     # See comments in plot_spectra for an
     # overview of the grid layout logic.
