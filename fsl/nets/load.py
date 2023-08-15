@@ -30,7 +30,8 @@ def load(infiles,
          demean=True,
          nruns=1,
          spatialmaps=None,
-         thumbnaildir=None):
+         thumbnaildir=None,
+         bgimage=None):
     """Load a folder full of individual runs'/subjects' node-timeseries files.
 
     Returns a TimeSeries object through which the time series and other
@@ -69,10 +70,13 @@ def load(infiles,
     thumbnaildir: Path to a directory containing PNG thumbnails for each
                   node. The PNG files must be named so that, when sorted,
                   their order matches the node order in the input data files.
+
+    bgimage:      3D image which is used as the background in generated
+                  thumbnail images. Ignored if thumbnaildir is provided.
     """
 
     if isinstance(infiles, (str, Path)):
-        infiles = sorted(glob.glob(op.join(infiles, 'dr_stage1_*.txt')))
+        infiles = sorted(glob.glob(op.join(infiles, '*.txt')))
 
     nsubjects = len(infiles)
 
@@ -85,15 +89,15 @@ def load(infiles,
         timeseries.append(load_file(infile, varnorm, demean, nr))
 
     ts0    = timeseries[0]
-    nnodes = ts0.shape[1]
+    nnodes = ts0.shape[2]
 
     for i, ts in enumerate(timeseries):
-        if ts.shape[1] != nnodes:
+        if ts.shape[2] != nnodes:
             raise ValueError('All input files must have the same number of '
-                             f'nodes ({infiles[i]} has {ts.shape[1]} nodes, '
-                             f'but ({infiles[0]} has {ts0.shape[1]} nodes)')
+                             f'nodes ({infiles[i]} has {ts.shape[2]} nodes, '
+                             f'but ({infiles[0]} has {ts0.shape[2]} nodes)')
 
-    thumbs = load_thumbnails(thumbnaildir, spatialmaps)
+    thumbs = load_thumbnails(thumbnaildir, spatialmaps, bgimage)
 
     return TimeSeries(timeseries, tr, thumbs)
 
@@ -157,16 +161,19 @@ def load_from_images(spatialmaps, subjfiles, *args, **kwargs):
         return load(timeseries, *args, spatialmaps=spatialmaps, **kwargs)
 
 
-def load_thumbnails(thumbnaildir, spatialmaps):
+def load_thumbnails(thumbnaildir, spatialmaps, bgimage=None):
     """Loads (and generates if necessary) per-node thumbnail images.
     Returns a list of file paths to each thumbnail.
 
     thumbnaildir: Directory containing a thumbnail image for each node.
                   Must be able to be sorted into the node order.
 
-    spatialmaps: 4D image which contains spatial maps representing the nodes.
+    spatialmaps:  4D image which contains spatial maps representing the nodes.
                   Ignored if a thumbnaildir is provided.  Otherwise,
                   thumbnails are generated from this file.
+
+    bgimage:      Passed through to generate_thumbnails. Ignored if a
+                  thumbnaildir is provided.
     """
 
     if thumbnaildir is not None:
@@ -177,13 +184,17 @@ def load_thumbnails(thumbnaildir, spatialmaps):
     if thumbnaildir is None and spatialmaps is None:
         return None
     if thumbnaildir is None:
-        thumbnaildir = generate_thumbnails(spatialmaps)
+        thumbnaildir = generate_thumbnails(spatialmaps, bgimage)
 
     return sorted(glob.glob(op.join(thumbnaildir, '*.png')))
 
 
 def generate_thumbnails(spatialmaps, bgimage=None):
-    """Generate thumbnails from a 4D image. """
+    """Generate thumbnails from a 4D image.
+
+    spatialmaps: 4D image which contains spatial maps representing the nodes.
+    bgimage:     Passed through to generate_thumbnails.
+    """
 
     # We try to save the thumbnails alongside the
     # file, in a directory called .{filename}.thumbnails
@@ -284,8 +295,11 @@ class TimeSeries:
         return sum([t.shape[0] for t in self.ts])
 
     def datasets(self, subj):
-        """Returns indices for all datasets/runs for the given subject. """
-        offset = sum([self.nruns(s) for s in range(subj)])
+        """Returns indices for all datasets/runs for the given subject.
+        These indices are useful when working with netmats, which are
+        arranged as (nsubjects*nruns, edges) arrays.
+        """
+        offset = sum(self.nruns(s) for s in range(subj))
         return range(offset, offset + self.nruns(subj))
 
     def nruns(self, subjidx):
