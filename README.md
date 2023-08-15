@@ -53,8 +53,9 @@ subjdata = glob('subject_*/filtered_func_data_standard.nii.gz')
 melic    = 'groupICA/melodic_IC.nii.gz'
 ts       = nets.load_from_images(melic, subjdata, 0.72)
 
-# View node time series power spectra
+# View node time series/power spectra
 nets.plot_spectra(ts)
+nets.plot_timeseries(ts)
 
 # Build a list of the indices of good nodes
 # (those which represent signal and not noise)
