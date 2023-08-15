@@ -1,0 +1,36 @@
+include:
+ - project: fsl/conda/fsl-ci-rules
+   file:    .gitlab-ci.yml
+
+stages:
+ - test
+ - fsl-ci-pre
+ - fsl-ci-build
+ - fsl-ci-test
+ - fsl-ci-deploy
+
+test:3.10:
+  stage: test
+  image: python:3.10
+
+  tags:
+    - docker
+
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+
+  script:
+    - bash ./.ci/unit_tests.sh
+
+test:3.11:
+  stage: test
+  image: python:3.11
+
+  tags:
+    - docker
+
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+
+  script:
+    - bash ./.ci/unit_tests.sh
