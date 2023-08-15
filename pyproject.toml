@@ -29,6 +29,13 @@ dependencies = [
   "seaborn",
 ]
 
+[project.optional-dependencies]
+test = [
+  "pytest",
+  "pytest-cov",
+  "coverage"
+]
+
 [project.urls]
 "Homepage" = "https://git.fmrib.ox.ac.uk/fsl/fslnets"
 
