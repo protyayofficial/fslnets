@@ -22,10 +22,11 @@ def node_spectrum(ts, node, windowlen):
     spectra = []
     nodeidx = ts.node_index(node)
 
-    for i, subj, run, data in ts.allts:
-        data        = data[:, nodeidx]
-        data        = data - np.nanmean(data)
-        _, spectrum = signal.welch(data, fs=1 / ts.tr, nperseg=windowlen)
+    for _, _, _, data in ts.allts:
+        data     = data[:, nodeidx]
+        data     = data - np.nanmean(data)
+        spectrum = np.abs(fft.fft(data, windowlen))
+        spectrum = spectrum[:round(windowlen / 2)]
         spectra.append(spectrum)
 
     # average node spectrum across subjects
@@ -58,8 +59,8 @@ def plot_spectra(ts, ncols=4, nodes=None):
     # we use the same window length for
     # all data sets, to accommodate
     # varying numbers of timepoints.
-    windowlen = min(ts.ntimepoints(subj) for subj in range(ts.nsubjects))
-    freqs     = fft.rfftfreq(windowlen, ts.tr)
+    windowlen = max(ts.ntimepoints(subj) for subj in range(ts.nsubjects))
+    freqs     = fft.rfftfreq(windowlen - 1, ts.tr)
 
     # And each node plot actually spans six
     # columns (1=thumbnail, 5=spectrum), so
