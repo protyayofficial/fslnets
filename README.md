@@ -97,8 +97,8 @@ nets.web(ts, (Znet_F, Znet_P), ('Full correlation', 'Partial correlation'))
 
 ## Installation
 
-FSLNets is installed as part of FSL 6.0.6.6. To use it, start a FSL Python
-session with  `fslipython`, `fslpython`, or `fslnotebook`.
+FSLNets is installed as part of FSL 6.0.6.6 and newer. To use it, start a FSL
+Python session with  `fslipython`, `fslpython`, or `fslnotebook`.
 
 FSLNets can also be installed independently of FSL with `conda`. For example:
 
@@ -116,3 +116,15 @@ Finally, FSLNets can be installed into a Python environment with `pip`
 ```
 pip install git+https://git.fmrib.ox.ac.uk/fsl/fslnets.git
 ```
+
+## Notes for maintainers
+
+FSLNets is built and released as a FSL conda package. New versions can be
+released by creating a tag on this repository.
+
+When a new version of FSLNets needs to be released, the version number in
+`pyproject.toml` must be updated in advance. Use of [Semantic
+versioning](https://www.semver.org) is encouraged.
+
+Once the version number has been updated, a git tag should be created on this
+repository, set to the new version number.
