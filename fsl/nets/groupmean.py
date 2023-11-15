@@ -114,7 +114,7 @@ def plot_groupmean(ts, zvals, mean, netmats, title=None):
                 x='subject', y='mean', ax=scatax, fill=True, levels=50,
                 thresh=0, cmap='gist_heat_r')
 
-    smin, smax = np.percentile(netmats, (1, 99))
+    smin, smax = np.nanpercentile(netmats, (1, 99))
     scatax.set_xlim((smin, smax))
     scatax.set_ylim((smin, smax))
     scatax.plot([0, 1], [0, 1], transform=scatax.transAxes,
