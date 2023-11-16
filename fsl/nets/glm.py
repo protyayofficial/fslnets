@@ -64,15 +64,16 @@ def glm(ts, netmats, design, contrasts, nperms=5000, plot=True, title=None):
         avgmats[subj] = netmats[idxs].mean(axis=0)
     netmats = avgmats
 
-    with tempdir():
+    with tempdir(changeto=False) as tdir:
 
         # TODO NIFTI2 required if nedges >= 32768
         netmats = netmats.T.reshape((nedges, 1, 1, nsubjs))
+        nmfile  = op.join(tdir, 'netmats')
 
-        Image(netmats).save('netmats')
+        Image(netmats).save(nmfile)
 
-        randomise('netmats', 'output', d=design, t=confile, n=nperms,
-                  x=True, uncorrp=True, log={'tee' : False})
+        randomise(nmfile, 'output', d=design, t=confile, n=nperms,
+                  x=True, uncorrp=True, submit=True)
 
         puncorr = np.zeros((ncontrasts, nedges))
         pcorr   = np.zeros((ncontrasts, nedges))
