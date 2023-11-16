@@ -12,7 +12,7 @@ import numpy             as     np
 import fsl.data.vest     as     vest
 from   fsl.data.image    import Image
 from   fsl.utils.tempdir import tempdir
-from   fsl.utils.run     import runfsl
+from   fsl.utils.run     import runfsl, hold
 from   fsl.wrappers      import randomise
 from   fsl.nets.util     import printTitle, printColumns
 
@@ -72,8 +72,8 @@ def glm(ts, netmats, design, contrasts, nperms=5000, plot=True, title=None):
 
         Image(netmats).save(nmfile)
 
-        randomise(nmfile, 'output', d=design, t=confile, n=nperms,
-                  x=True, uncorrp=True, submit=True)
+        hold(randomise(nmfile, 'output', d=design, t=confile, n=nperms,
+                       x=True, uncorrp=True, submit=True))
 
         puncorr = np.zeros((ncontrasts, nedges))
         pcorr   = np.zeros((ncontrasts, nedges))
