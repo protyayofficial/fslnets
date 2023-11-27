@@ -6,6 +6,7 @@
 #         Paul McCarthy, 2023
 #
 
+import                          os
 import os.path           as     op
 import matplotlib.pyplot as     plt
 import numpy             as     np
@@ -64,7 +65,10 @@ def glm(ts, netmats, design, contrasts, nperms=5000, plot=True, title=None):
         avgmats[subj] = netmats[idxs].mean(axis=0)
     netmats = avgmats
 
-    with tempdir(changeto=False) as tdir:
+    # Store files cwd, in case we are
+    # running on a cluster where $TMPDIR
+    # may not be shared between nodes
+    with tempdir(root=os.getcwd(), changeto=False) as tdir:
 
         # TODO NIFTI2 required if nedges >= 32768
         netmats = netmats.T.reshape((nedges, 1, 1, nsubjs))
