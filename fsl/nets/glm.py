@@ -6,6 +6,7 @@
 #         Paul McCarthy, 2023
 #
 
+import                          os
 import os.path           as     op
 import matplotlib.pyplot as     plt
 import numpy             as     np
@@ -64,15 +65,19 @@ def glm(ts, netmats, design, contrasts, nperms=5000, plot=True, title=None):
         avgmats[subj] = netmats[idxs].mean(axis=0)
     netmats = avgmats
 
-    with tempdir(changeto=False) as tdir:
+    # Store files cwd, in case we are
+    # running on a cluster where $TMPDIR
+    # may not be shared between nodes
+    with tempdir(root=os.getcwd(), prefix='.fslnets', changeto=False) as tdir:
 
         # TODO NIFTI2 required if nedges >= 32768
         netmats = netmats.T.reshape((nedges, 1, 1, nsubjs))
         nmfile  = op.join(tdir, 'netmats')
+        outpref = op.join(tdir, 'output')
 
         Image(netmats).save(nmfile)
 
-        hold(randomise(nmfile, 'output', d=design, t=confile, n=nperms,
+        hold(randomise(nmfile, outpref, d=design, t=confile, n=nperms,
                        x=True, uncorrp=True, submit=True))
 
         puncorr = np.zeros((ncontrasts, nedges))
@@ -80,9 +85,9 @@ def glm(ts, netmats, design, contrasts, nperms=5000, plot=True, title=None):
 
         for con in range(ncontrasts):
             constr       = ' '.join([f'{c:g}' for c in contrasts[con]])
-            tstat        = Image(f'output_tstat{con+1}')          .data.flatten()
-            cpuncorr     = Image(f'output_vox_p_tstat{con+1}')    .data.flatten()
-            cpcorr       = Image(f'output_vox_corrp_tstat{con+1}').data.flatten()
+            tstat        = Image(f'{outpref}_tstat{con+1}')          .data.flatten()
+            cpuncorr     = Image(f'{outpref}_vox_p_tstat{con+1}')    .data.flatten()
+            cpcorr       = Image(f'{outpref}_vox_corrp_tstat{con+1}').data.flatten()
             puncorr[con] = cpuncorr
             pcorr[  con] = cpcorr
 
