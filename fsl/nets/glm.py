@@ -68,7 +68,7 @@ def glm(ts, netmats, design, contrasts, nperms=5000, plot=True, title=None):
     # Store files cwd, in case we are
     # running on a cluster where $TMPDIR
     # may not be shared between nodes
-    with tempdir(root=os.getcwd(), changeto=False) as tdir:
+    with tempdir(root=os.getcwd(), prefix='.fslnets', changeto=False) as tdir:
 
         # TODO NIFTI2 required if nedges >= 32768
         netmats = netmats.T.reshape((nedges, 1, 1, nsubjs))
