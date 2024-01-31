@@ -128,3 +128,57 @@ versioning](https://www.semver.org) is encouraged.
 
 Once the version number has been updated, a git tag should be created on this
 repository, set to the new version number.
+
+
+## Release history
+
+## 0.8.4 (Wednesday 31st January 2024)
+
+- Fixed `netmats(ts, 'amps')` - it was returning the same value for each node
+  within each subject (the standard deviation across all nodes).
+
+
+## 0.8.3 (Monday 27th November 2023)
+
+- Adjusted the `nets.glm` function so that it does not use `$TMPDIR` when calling
+  `randomise`, as the `randomise` call may be submitted to a cluster node which has
+  a different `$TMPDIR`.
+
+
+## 0.8.2 (Thursday 16th November 2023)
+
+- Adjust the `nets.glm` function to pause until `randomise` has completed, when
+  running on a cluster.
+
+
+## 0.8.1 (Wednesday 15th November 2023)
+
+- Make the `plot_groupmean` function resilient to NaN values.
+
+
+## 0.8.0 (Tuesday 15th August 2023)
+
+- The `plot_spectra` function was using a hard-coded window length, rather than
+  a window length based on the length of the time series.
+- New `plot_timeseries` function, which may be useful for quality-control
+  purposes.
+- The `load` function will load all `*.txt` files in the input directory, rather
+  than only files with the name `dr_stage1_*.txt`.
+
+
+## 0.7.2 (Wednesday 2nd August 2023)
+
+- Changed the `nets.web` logic so that the web server is kept alive until the
+  expected number of successful HTTP requests are made. Naively shutting down
+  the server after 5 seconds can be problematic on slow systems.
+
+
+## 0.7.1 (Tuesday 15th June 2023)
+
+- Adjust the `plot_spectra` function so that the node spectra are normalised
+  in the same way as the original `nets_spectra.m` function.
+- Fix the `glm` function so that it doesn't crash when given a single contrast.
+
+## 0.7.0 (Thursday 25th May 2023)
+
+- First tagged release of the new Python-based `fslnets` library.

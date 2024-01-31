@@ -6,6 +6,7 @@
 #         Paul McCarthy, 2023
 #
 
+import functools as ft
 import itertools as it
 
 import numpy as     np
@@ -52,8 +53,8 @@ def netmats(ts, method, do_rtoz=True, *args, **kwargs):
     METHODS = {
         'cov'         : np.cov,
         'covariance'  : np.cov,
-        'amp'         : np.std,
-        'amplitude'   : np.std,
+        'amp'         : ft.partial(np.std, axis=0),
+        'amplitude'   : ft.partial(np.std, axis=0),
         'corr'        : correlation,
         'correlation' : correlation,
         'rcorr'       : rcorr,
