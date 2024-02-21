@@ -37,6 +37,8 @@ def clean(ts, goodnodes, aggressive=False):
         ntimepoints = ts.ntimepoints(subj)
         newsubjts   = np.zeros((nruns, ntimepoints, nnodes), dtype=np.float64)
 
+        newts.append(newsubjts)
+
         for run in range(nruns):
 
             runts  = np.array(origts[run], copy=True)
@@ -49,6 +51,5 @@ def clean(ts, goodnodes, aggressive=False):
                 runts = goodts
 
             newsubjts[run] = runts
-            newts.append(newsubjts)
 
     ts.ts = newts
