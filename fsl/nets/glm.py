@@ -70,12 +70,13 @@ def glm(ts, netmats, design, contrasts, nperms=5000, plot=True, title=None):
     # may not be shared between nodes
     with tempdir(root=os.getcwd(), prefix='.fslnets', changeto=False) as tdir:
 
-        # TODO NIFTI2 required if nedges >= 32768
         netmats = netmats.T.reshape((nedges, 1, 1, nsubjs))
         nmfile  = op.join(tdir, 'netmats')
         outpref = op.join(tdir, 'output')
 
-        Image(netmats).save(nmfile)
+        # Save as NIfTI2 to support large numbers
+        # of edges/subjects/timepoints
+        Image(netmats, version=2).save(nmfile)
 
         hold(randomise(nmfile, outpref, d=design, t=confile, n=nperms,
                        x=True, uncorrp=True, submit=True))
