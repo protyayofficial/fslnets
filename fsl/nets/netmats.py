@@ -53,8 +53,8 @@ def netmats(ts, method, do_rtoz=True, *args, **kwargs):
     METHODS = {
         'cov'         : np.cov,
         'covariance'  : np.cov,
-        'amp'         : ft.partial(np.std, axis=0),
-        'amplitude'   : ft.partial(np.std, axis=0),
+        'amp'         : ft.partial(np.std, axis=0, ddof=1),
+        'amplitude'   : ft.partial(np.std, axis=0, ddof=1),
         'corr'        : correlation,
         'correlation' : correlation,
         'rcorr'       : rcorr,
@@ -145,7 +145,7 @@ def rtoz(ts, nmats, method, scale):
     np.random.seed(12345)
 
     if scale is not True:
-        return 0.5 * np.log((1 + nmats) / (1 -  nmats)) * scale
+        return 0.5 * np.log((1 + nmats) / (1 - nmats)) * scale
 
     # quick crappy estimate of median AR(1) coefficient
     arone = np.zeros((ts.ndatasets, ts.nnodes))
@@ -168,7 +168,7 @@ def rtoz(ts, nmats, method, scale):
             for tp in range(1, ts.ntimepoints(subj)):
                 null[tp, node] = null[tp - 1, node] * arone + random.randn()
 
-        # correlation matrix on mull data
+        # correlation matrix on null data
         if method in ('corr', 'correlation', 'rcorr'):
             nullr = np.corrcoef(null.T)
         else:
@@ -176,10 +176,16 @@ def rtoz(ts, nmats, method, scale):
             diags = np.sqrt(np.abs(nullr.diagonal(0)))
             diags = np.tile(diags, (1, ts.nnodes)).reshape((ts.nnodes, ts.nnodes))
             nullr = (nullr / diags.T) / diags
-        allcorrs[subj, :] = nullr[~np.eye(ts.nnodes, dtype=bool)].flatten()
 
-    allz  = 0.5 * np.log((1 + allcorrs) / (1 - allcorrs))
-    scale = 1 / allz.std()
-    nmats = 0.5 * np.log((1 + nmats) / (1 -  nmats)) * scale
+        allcorrs[i, :] = nullr[~np.eye(ts.nnodes, dtype=bool)].flatten()
+
+    # numpy.log will return nan for real negative values,
+    # so make sure the input is complex. numpy.std will
+    # take the absolute value (magnitude) of its input,
+    # so the resulting scale will be real and non-negative
+    allcorrs = allcorrs + 0j
+    allz     = 0.5 * np.log((1 + allcorrs) / (1 - allcorrs))
+    scale    = 1 / allz.std(ddof=1)
+    nmats    = 0.5 * np.log((1 + nmats) / (1 -  nmats)) * scale
 
     return nmats

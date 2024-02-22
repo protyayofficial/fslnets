@@ -1,6 +1,6 @@
 [project]
 name              = "fslnets"
-version           = "0.8.4"
+version           = "0.8.5"
 description       = "A set of simple scripts for carrying out basic network modelling from (typically FMRI) timeseries data."
 readme            = "README.md"
 requires-python   = ">=3.7"
@@ -20,7 +20,7 @@ authors = [
 ]
 
 dependencies = [
-  "fslpy >=3.15.4",
+  "fslpy >=3.18",
   "fsl-pipe",
   "matplotlib",
   "numpy",

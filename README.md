@@ -132,6 +132,15 @@ repository, set to the new version number.
 
 ## Release history
 
+
+## 0.8.5 (Wednesday 21st February 2024)
+
+- Netmats are now saved in NIfTI2 format when being passed to `randomise`, to
+  support numbers of edges/subjects greater than 32768.
+- Fixed some issues in the R-to-Z transformation used in `nets.netmats`.
+- Fixed an issue with `nets.clean` incorrectly handling multi-run data.
+
+
 ## 0.8.4 (Wednesday 31st January 2024)
 
 - Fixed `netmats(ts, 'amps')` - it was returning the same value for each node
