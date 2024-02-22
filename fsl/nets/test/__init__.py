@@ -36,7 +36,7 @@ def create_random_timeseries(tr, nsubjects, nnodes, ntimepoints, nruns):
     with tempfile.TemporaryDirectory() as td:
 
         filenames, _ = generate_random_data(
-            nsubjects, nnodes, ntimepoints, 1, td, '{:02d}.txt')
+            nsubjects, nnodes, ntimepoints, nruns, td, '{:02d}.txt')
 
         # generate dummy thumbnails
         for i in range(nnodes):
@@ -51,4 +51,4 @@ def create_random_timeseries(tr, nsubjects, nnodes, ntimepoints, nruns):
             fig.tight_layout()
             fig.savefig(filename)
 
-        yield nets.load(filenames, tr, thumbnaildir=td)
+        yield nets.load(filenames, tr, nruns=nruns, thumbnaildir=td)
