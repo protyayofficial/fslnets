@@ -1,0 +1,19 @@
+{
+  "cwd": "/home/csgrad/protyayd/phd/FMRI/fslnets/fsl_course_data/rest/Nets",
+  "outdir": "/home/csgrad/protyayd/phd/FMRI/fslnets/fsl_course_data/rest/Nets/fslnets_headless_outputs_verify",
+  "TR": 0.72,
+  "varnorm": 0,
+  "goodnodes_count": 63,
+  "n_subjects": 12,
+  "n_edges": 3969,
+  "glm": {
+    "contrast_count": 1,
+    "p_corr0_min": 0.0,
+    "p_corr0_max": 0.9751082062721252,
+    "n_sig_corr_edges_1mp_gt_0p95": 2
+  },
+  "notes": [
+    "randomise-style outputs are 1-p values; >0.95 corresponds to p<0.05",
+    "post-clean node indices are re-mapped; ts.nodes maps post-clean index -> original ICA component index"
+  ]
+}
