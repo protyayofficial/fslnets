@@ -1,14 +1,11 @@
 # FSLNets
 
-
 > This is a Python-based re-implementation of the MATLAB-based
 > [FSLNets](https://fsl.fmrib.ox.ac.uk/fsl/fslwiki/FSLNets) network modelling
 > toolbox.
 
-
 FSLNets is a set of simple scripts for carrying out basic network modelling
 from (typically FMRI) timeseries data.
-
 
 The main thing you will feed into FSLNets network modelling is N timecourses
 from S subjects' datasets - i.e., timeseries from N network nodes. For display
@@ -22,7 +19,6 @@ S subject-specific versions of the N timecourses. Alternatively, you might
 have used a set of template images or ROIs from another study, to feed into
 the dual regression.
 
-
 Now you are ready to compute a _network matrix_ for each subject, which in
 general will be an NxN matrix of connection strengths. The simplest and most
 common approach is just to use "full" correlation, giving an NxN matrix of
@@ -34,9 +30,7 @@ subjects, for example, testing each matrix element for a two-group subject
 difference, or feeding the whole matrices into multivariate discriminant
 analysis.
 
-
 ## Example usage
-
 
 ```python
 %matplotlib
@@ -94,15 +88,14 @@ nets.classify(Pnetmats, (6, 6))
 nets.web(ts, (Znet_F, Znet_P), ('Full correlation', 'Partial correlation'))
 ```
 
-
 ## Installation
 
 FSLNets is installed as part of FSL 6.0.6.6 and newer. To use it, start a FSL
-Python session with  `fslipython`, `fslpython`, or `fslnotebook`.
+Python session with `fslipython`, `fslpython`, or `fslnotebook`.
 
 FSLNets can also be installed independently of FSL with `conda`. For example:
 
-```
+```bash
 conda create                                                  \
   -c https://fsl.fmrib.ox.ac.uk/fsldownloads/fslconda/public/ \
   -c conda-forge                                              \
@@ -111,11 +104,120 @@ conda create                                                  \
 ```
 
 Finally, FSLNets can be installed into a Python environment with `pip`
-(however, this method will **not** install any FSL dependencies):
+(howhowever, this method will **not** install any FSL dependencies):
 
-```
+```bash
 pip install git+https://git.fmrib.ox.ac.uk/fsl/fslnets.git
 ```
+
+---
+
+## Reproducing the FSL Course “Resting State” dataset + running `fsl_course_data/rest/Nets/run_fslnets.py`
+
+If you want an “exact dataset + exact pipeline” reproducibility target, use the
+official **FSL Course “Resting State”** practical dataset (`rest.tar.gz`), which
+unpacks into `~/fsl_course_data/rest/` and contains a ready-to-run FSLNets
+practical directory:
+
+```
+~/fsl_course_data/rest/Nets/
+```
+
+### 1) Download the dataset (`rest.tar.gz`)
+
+Download and extract (Linux/WSL):
+
+```bash
+cd ~
+wget -c https://fsl.fmrib.ox.ac.uk/fslcourse/downloads/rest.tar.gz
+tar -zxvf rest.tar.gz
+```
+
+macOS alternative:
+
+```bash
+cd ~
+curl -L -# -O -C - https://fsl.fmrib.ox.ac.uk/fslcourse/downloads/rest.tar.gz
+tar -zxvf rest.tar.gz
+```
+
+After extraction, verify:
+
+```bash
+ls ~/fsl_course_data/rest/Nets
+```
+
+Expected contents include:
+
+- `groupICA100.dr/`   (dual regression stage-1 timeseries: `dr_stage1_subject*.txt`)
+- `groupICA100.sum/`  (component thumbnails)
+- `design/`           (GLM design files for `randomise`)
+- `run_fslnets.py`     (script to run the practical end-to-end)
+
+> Note: The FSL Course data is provided for educational use only (per the course website).
+
+### 2) Ensure FSL is available (required for `nets.glm`)
+
+`nets.glm(...)` calls FSL’s `randomise` under the hood, so your environment must
+have FSL configured:
+
+```bash
+echo $FSLDIR
+which randomise
+```
+
+If `randomise` is not found, ensure you have sourced your FSL configuration
+(e.g., `${FSLDIR}/etc/fslconf/fsl.sh`) and that `${FSLDIR}/bin` is on your `PATH`.
+
+### 3) Run the course practical script
+
+```bash
+cd ~/fsl_course_data/rest/Nets
+python run_fslnets.py
+```
+
+If `fslpython` exists in your install:
+
+```bash
+cd ~/fsl_course_data/rest/Nets
+fslpython run_fslnets.py
+```
+
+### 4) Headless servers (no display)
+
+Option A (recommended): force a headless Matplotlib backend:
+
+```bash
+cd ~/fsl_course_data/rest/Nets
+export MPLBACKEND=Agg
+python run_fslnets.py
+```
+
+Option B: edit `run_fslnets.py` and add this **before** importing `matplotlib.pyplot`:
+
+```python
+import matplotlib
+matplotlib.use("Agg")
+```
+
+### 5) Quick verification checks (to confirm your run matches the course)
+
+When run on the course dataset, you should see the following invariants:
+
+- 12 subjects loaded (the course dataset includes 12 subjects in this practical)
+- 63 nodes remaining after cleanup using the provided `goodnodes` list
+- Netmats dimensions often match `subjects x (nodes*nodes)` for “full NxN” flattened matrices
+  (e.g., `12 x 3969` when nodes=63)
+- A standard course spot-check after `groupmean`:
+  `Mnet_P[2, 26]` should be approximately `~6.6` on this dataset/settings
+
+### 6) Interpreting `nets.glm` outputs (“P value” / 1-p convention)
+
+FSL `randomise` commonly outputs **1-p values** in its probability images/results.
+A value of `0.95` corresponds to `p=0.05`, so thresholding at `> 0.95` is a common
+way to view statistically significant corrected results.
+
+---
 
 ## Notes for maintainers
 
@@ -129,9 +231,9 @@ versioning](https://www.semver.org) is encouraged.
 Once the version number has been updated, a git tag should be created on this
 repository, set to the new version number.
 
+---
 
 ## Release history
-
 
 ## 0.8.5 (Wednesday 21st February 2024)
 
@@ -140,12 +242,10 @@ repository, set to the new version number.
 - Fixed some issues in the R-to-Z transformation used in `nets.netmats`.
 - Fixed an issue with `nets.clean` incorrectly handling multi-run data.
 
-
 ## 0.8.4 (Wednesday 31st January 2024)
 
 - Fixed `netmats(ts, 'amps')` - it was returning the same value for each node
   within each subject (the standard deviation across all nodes).
-
 
 ## 0.8.3 (Monday 27th November 2023)
 
@@ -153,17 +253,14 @@ repository, set to the new version number.
   `randomise`, as the `randomise` call may be submitted to a cluster node which has
   a different `$TMPDIR`.
 
-
 ## 0.8.2 (Thursday 16th November 2023)
 
 - Adjust the `nets.glm` function to pause until `randomise` has completed, when
   running on a cluster.
 
-
 ## 0.8.1 (Wednesday 15th November 2023)
 
 - Make the `plot_groupmean` function resilient to NaN values.
-
 
 ## 0.8.0 (Tuesday 15th August 2023)
 
@@ -174,13 +271,11 @@ repository, set to the new version number.
 - The `load` function will load all `*.txt` files in the input directory, rather
   than only files with the name `dr_stage1_*.txt`.
 
-
 ## 0.7.2 (Wednesday 2nd August 2023)
 
 - Changed the `nets.web` logic so that the web server is kept alive until the
   expected number of successful HTTP requests are made. Naively shutting down
   the server after 5 seconds can be problematic on slow systems.
-
 
 ## 0.7.1 (Tuesday 15th June 2023)
 
